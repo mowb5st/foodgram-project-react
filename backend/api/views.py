@@ -1,6 +1,7 @@
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 from users.models import User
-from .serializers import UserSerializer, MeUserSerializer
+from core.models import Recipe, Tag, Ingredient
+from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer
 
 
 USERNAME_ME = 'me'
@@ -23,6 +24,11 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
         if self.kwargs.get('username') == USERNAME_ME:
             return MeUserSerializer
         return UserSerializer
+
+
+class RecipeViewSet(ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
 
 
 
