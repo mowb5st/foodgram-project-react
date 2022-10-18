@@ -50,12 +50,26 @@ class Recipe(models.Model):
 class IngredientToRecipe(models.Model):
     recipe = models.ForeignKey(Recipe,
                                related_name='Recipe',
-                               verbose_name='recipe_following',
+                               verbose_name='ingredient2recipe_following',
                                on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient,
                                    related_name='Ingredient',
-                                   verbose_name='ingredient_follower',
+                                   verbose_name='ingredient2recipe_follower',
                                    on_delete=models.CASCADE)
 
     def __str__(self):
         return f'{self.recipe}, {self.ingredient}'
+
+
+class TagToRecipe(models.Model):
+    recipe = models.ForeignKey(Recipe,
+                               related_name='Recipe',
+                               verbose_name='tag2recipe_following',
+                               on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag,
+                            related_name='Tag',
+                            verbose_name='tag2recipe_follower',
+                            on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.recipe}, {self.tag}'
