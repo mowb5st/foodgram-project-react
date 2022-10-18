@@ -18,9 +18,9 @@ class Ingredient(models.Model):
 class Tag(models.Model):
     title = models.CharField("Tag's title", max_length=50)
     color = models.CharField("Tag's HEX color", max_length=8)
-    slug = models.SlugField("Tag's slug",
-                            unique=True,
-                            verbose_name='URL')
+    slug = models.SlugField(
+        unique=True,
+        verbose_name='URL')
 
     def __str__(self):
         return self.title
@@ -37,39 +37,40 @@ class Recipe(models.Model):
                               upload_to='core/'
                               )
     text = models.TextField("Recipe's text")
-    ingredient = models.ForeignKey(Ingredient,
-                                   on_delete=models.SET_NULL,
-                                   related_name='ingredients')
-    tag = models.ForeignKey("Recipe's tag",
-                            on_delete=models.CASCADE)
+    ingredient = models.ManyToManyField(Ingredient,
+                                        # on_delete=models.CASCADE,
+                                        related_name='ingredients')
+    tag = models.ManyToManyField(Tag,
+                                 related_name='tags',
+                                 # on_delete=models.CASCADE
+                                 )
 
     def __str__(self):
         return self.title
 
+# class IngredientToRecipe(models.Model):
+#     recipe = models.ForeignKey(Recipe,
+#                                related_name='Recipe of ingredient',
+#                                verbose_name='ingredient2recipe_following',
+#                                on_delete=models.CASCADE)
+#     ingredient = models.ForeignKey(Ingredient,
+#                                    related_name='Ingredient',
+#                                    verbose_name='ingredient2recipe_follower',
+#                                    on_delete=models.CASCADE)
+#
+#     def __str__(self):
+#         return f'{self.recipe}, {self.ingredient}'
 
-class IngredientToRecipe(models.Model):
-    recipe = models.ForeignKey(Recipe,
-                               related_name='Recipe',
-                               verbose_name='ingredient2recipe_following',
-                               on_delete=models.CASCADE)
-    ingredient = models.ForeignKey(Ingredient,
-                                   related_name='Ingredient',
-                                   verbose_name='ingredient2recipe_follower',
-                                   on_delete=models.CASCADE)
 
-    def __str__(self):
-        return f'{self.recipe}, {self.ingredient}'
-
-
-class TagToRecipe(models.Model):
-    recipe = models.ForeignKey(Recipe,
-                               related_name='Recipe',
-                               verbose_name='tag2recipe_following',
-                               on_delete=models.CASCADE)
-    tag = models.ForeignKey(Tag,
-                            related_name='Tag',
-                            verbose_name='tag2recipe_follower',
-                            on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'{self.recipe}, {self.tag}'
+# class TagToRecipe(models.Model):
+#     recipe = models.ForeignKey(Recipe,
+#                                # related_name='Recipe of tag',
+#                                verbose_name='tag2recipe_following',
+#                                on_delete=models.CASCADE)
+#     tag = models.ForeignKey(Tag,
+#                             # related_name='Tag of recipe',
+#                             verbose_name='tag2recipe_follower',
+#                             on_delete=models.CASCADE)
+#
+#     def __str__(self):
+#         return f'{self.recipe}, {self.tag}'
