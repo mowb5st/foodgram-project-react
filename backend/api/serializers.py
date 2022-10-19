@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from users.models import User
-from core.models import Recipe, Tag, Ingredient
+from core.models import Recipe, Tag, Ingredient, Follow
+from django.shortcuts import get_object_or_404
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -9,9 +10,14 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('email', 'id', 'username', 'first_name', 'last_name',)
 
 
-class UserEventSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.StringRelatedField(
-        default='TODO')  # !TODO add is_subscribed field
+class UserEventSerializer(UserSerializer):
+    # !TODO add is_subscribed field
+    # is_subscribed = serializers.StringRelatedField(default='TODO')
+    is_subscribed = serializers.SerializerMethodField()
+
+    def get_is_subscribed(self, obj):
+        user = self.context['request'].user
+        return Follow.objects.filter(user=user, author=obj).exists()
 
     class Meta:
         model = User
@@ -36,10 +42,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_author(self, obj):
         request = self.context['request']
-        user = request.user
         serializer = UserEventSerializer(
-            user,
-            # context={'request': request},
+            obj.author,
+            context={'request': request},
         )
         return serializer.data
 
