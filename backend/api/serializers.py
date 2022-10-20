@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from users.models import User
-from core.models import Recipe, Tag, Ingredient, Follow
+from core.models import Recipe, Tag, Ingredient, Follow, Favorite
 from django.shortcuts import get_object_or_404
 
 
@@ -26,8 +26,26 @@ class UserEventSerializer(UserSerializer):
 
 
 class UserSubSerializer(UserEventSerializer):
-    # user = serializers.StringRelatedField()
-    # author = serializers.StringRelatedField(read_only=True)
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    def get_recipes(self, obj):
+        # queryset = Recipe.objects.filter(author=obj.username)
+        queryset = Recipe.objects.filter(author=obj.id)
+        # request = self.context['request']
+        serializer = RecipeSubSerializer(
+            instance=queryset,
+            many=True,
+            # context={'request': request}
+        )
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        queryset = Recipe.objects.filter(author=obj.id).count()
+        # serializer = RecipeSubSerializer(
+        #     queryset, many=True
+        # )
+        return queryset
 
     class Meta:
         model = User
@@ -35,16 +53,8 @@ class UserSubSerializer(UserEventSerializer):
         fields = (
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed',
-        )
-
-class UserSub2Serializer(UserEventSerializer):
-    # user = serializers.StringRelatedField()
-    class Meta:
-        model = User
-        # fields = ('author',)
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed',
+            'recipes',
+            'recipes_count'
         )
 
 
@@ -67,7 +77,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def get_recipes(self, obj):
         request = self.context['request']
         # print(request)
-        serializer = RecipeSubscriptionSerializer(
+        serializer = RecipeSubSerializer(
             # obj.author,
             context={'request': request},
         )
@@ -102,7 +112,36 @@ class RecipeSerializer(serializers.ModelSerializer):
                   'cooking_time')
 
 
-class RecipeSubscriptionSerializer(serializers.ModelSerializer):
+class RecipeSubSerializer(serializers.ModelSerializer):
+    # id = name = image = cooking_time = serializers.StringRelatedField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'name', 'image', 'cooking_time')
+        # read_only_fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+
+    def save(self, **kwargs):
+        ret = []
+        request = self.context['request']
+        # print(self.serializer_related_field)
+        user = request.user
+        recipe = Recipe.objects.get(id=kwargs['recipe'])
+        # print(user, ':', recipe)
+        # obj = Favorite.objects.create(user=user, recipe=recipe)
+        queryset = Recipe.objects.filter(id=kwargs['recipe'])
+        # request = self.context['request']
+        serializer = RecipeSubSerializer(
+            instance=queryset,
+            many=True,
+            context={'request': request}
+        )
+        ret.append(serializer.data)
+        return ret

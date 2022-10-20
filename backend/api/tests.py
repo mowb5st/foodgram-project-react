@@ -20,3 +20,18 @@ class UserTestCase(TestCase):
         obj_user = User.objects.filter(username='testname')
         print(obj_user)
         # self.assertEqual()
+
+
+# class FavoriteTestCase(TestCase):
+#     @classmethod
+#     def setUpClass(cls):
+#         super().setUpClass()
+#         cls.user = User.objects.create(email='testcase@test.com',
+#                                        usenrame='testname',
+#                                        first_name='test_first_name',
+#                                        last_name='test_last_name',
+#                                        password='testpass')
+#         cls.recipe =
+#
+#     def sub_to_recipe(self):
+

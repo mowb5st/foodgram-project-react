@@ -81,29 +81,29 @@ class Follow(models.Model):
     def __str__(self):
         return f'{self.user}, {self.author}'
 
-# class IngredientToRecipe(models.Model):
-#     recipe = models.ForeignKey(Recipe,
-#                                related_name='Recipe of ingredient',
-#                                verbose_name='ingredient2recipe_following',
-#                                on_delete=models.CASCADE)
-#     ingredient = models.ForeignKey(Ingredient,
-#                                    related_name='Ingredient',
-#                                    verbose_name='ingredient2recipe_follower',
-#                                    on_delete=models.CASCADE)
-#
-#     def __str__(self):
-#         return f'{self.recipe}, {self.ingredient}'
 
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        User,
+        verbose_name='Пользователь',
+        related_name='favorite_user',
+        help_text='Пользователь, который подписывается',
+        on_delete=models.CASCADE,
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='На кого подписался',
+        related_name='favorite_recipe',
+        help_text='Рецепт, добавляемый в избранное',
+        on_delete=models.CASCADE,
+    )
 
-# class TagToRecipe(models.Model):
-#     recipe = models.ForeignKey(Recipe,
-#                                # related_name='Recipe of tag',
-#                                verbose_name='tag2recipe_following',
-#                                on_delete=models.CASCADE)
-#     tag = models.ForeignKey(Tag,
-#                             # related_name='Tag of recipe',
-#                             verbose_name='tag2recipe_follower',
-#                             on_delete=models.CASCADE)
-#
-#     def __str__(self):
-#         return f'{self.recipe}, {self.tag}'
+    class Meta:
+        db_table = 'favorites'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'recipe'],
+                                    name='unique_favorite')
+        ]
+
+    def __str__(self):
+        return f'{self.user}, {self.recipe}'
