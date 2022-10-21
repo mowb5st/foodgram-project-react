@@ -129,19 +129,6 @@ class FavoriteSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
     def save(self, **kwargs):
-        ret = []
-        request = self.context['request']
-        # print(self.serializer_related_field)
-        user = request.user
+        user = self.context['request'].user
         recipe = Recipe.objects.get(id=kwargs['recipe'])
-        # print(user, ':', recipe)
-        # obj = Favorite.objects.create(user=user, recipe=recipe)
-        queryset = Recipe.objects.filter(id=kwargs['recipe'])
-        # request = self.context['request']
-        serializer = RecipeSubSerializer(
-            instance=queryset,
-            many=True,
-            context={'request': request}
-        )
-        ret.append(serializer.data)
-        return ret
+        Favorite.objects.create(user=user, recipe=recipe)

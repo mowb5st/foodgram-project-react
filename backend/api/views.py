@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.decorators import api_view
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
@@ -50,22 +52,25 @@ class RecipeViewSet(ModelViewSet):
 
 
 class FavoriteViewSet(ModelViewSet):
-    # queryset = Recipe.objects.all()
     serializer_class = FavoriteSerializer
 
     def get_queryset(self):
-        # queryset = get_object_or_404(Recipe, id=self.kwargs.get('recipe_id'))
-        # print(queryset)
-        queryset = Recipe.objects.filter(id=self.kwargs.get('recipe_id'))
+        recipe_id = self.kwargs.get('recipe_id')
+        queryset = Recipe.objects.filter(id=recipe_id)
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        recipe_id = self.kwargs.get('recipe_id')
+        obj = Recipe.objects.get(id=recipe_id)
+        serializer = self.get_serializer(obj)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED,
+                        headers=headers)
 
     def perform_create(self, serializer):
         user = self.request.user
         recipe = self.kwargs.get('recipe_id')
-        obj = Recipe.objects.filter(id=recipe)
-        # print(user, ':', recipe)
-        # Favorite.objects.create(user=user, recipe__id=recipe)
-        serializer.save(user=user, recipe=recipe, instance=obj)
-        serializer = RecipeSubSerializer(instance=obj, many=True)
-        super(FavoriteViewSet, self).list(self.request)
-        # return Response(serializer.data)
+        serializer.save(user=user, recipe=recipe)
