@@ -53,6 +53,7 @@ class RecipeViewSet(ModelViewSet):
 
 class FavoriteViewSet(ModelViewSet):
     serializer_class = FavoriteSerializer
+    pagination_class = None
 
     def get_queryset(self):
         recipe_id = self.kwargs.get('recipe_id')
@@ -63,14 +64,17 @@ class FavoriteViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+
+    def perform_create(self, serializer):
+        user = self.request.user
         recipe_id = self.kwargs.get('recipe_id')
+        serializer.save(user=user, recipe=recipe_id)
         obj = Recipe.objects.get(id=recipe_id)
         serializer = self.get_serializer(obj)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        recipe = self.kwargs.get('recipe_id')
-        serializer.save(user=user, recipe=recipe)
+
+class AuthCustomViewSet(ModelViewSet):
+    pass

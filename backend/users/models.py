@@ -24,9 +24,9 @@ class User(AbstractUser):
         blank=True,
     )
     first_name = models.CharField(
-        'Имя', max_length=150, blank=True)
+        'Имя', max_length=150, blank=False)
     last_name = models.CharField(
-        'Фамилия', max_length=150, blank=True)
+        'Фамилия', max_length=150, blank=False)
     confirmation_code = models.CharField(
         'Код подтверждения', max_length=36, blank=True
     )
