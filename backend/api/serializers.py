@@ -1,7 +1,11 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
 from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, \
+    TokenRefreshSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -132,3 +136,27 @@ class FavoriteSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         recipe = Recipe.objects.get(id=kwargs['recipe'])
         Favorite.objects.create(user=user, recipe=recipe)
+
+
+class LoginSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        return token
+
+
+class LogoutSerializer(TokenRefreshSerializer):
+    refresh = serializers.ReadOnlyField()
+
+    def validate(self, attrs):
+        return attrs
+
+    def save(self, validated_data):
+        print(self.context['request'].user)
+        user = User.objects.get(username=self.context['request'].user)
+        token = RefreshToken.for_user(user)
+        token.blacklist
+        token.set_jti()
+        token.set_exp()
+
+

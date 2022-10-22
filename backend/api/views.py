@@ -1,13 +1,22 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
+from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
 from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
     SubscriptionSerializer, UserSubSerializer, FavoriteSerializer, \
-    RecipeSubSerializer
+    RecipeSubSerializer, LoginSerializer, LogoutSerializer
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView, \
+    TokenRefreshView
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 USERNAME_ME = 'me'
 
@@ -18,8 +27,7 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
                   ):
     queryset = User.objects.all()
     lookup_field = 'id'
-
-    # serializer_class = UserSerializer
+    permission_classes = IsAuthenticated
 
     def get_object(self):
         if self.kwargs.get('id') == USERNAME_ME:
@@ -53,6 +61,7 @@ class RecipeViewSet(ModelViewSet):
 
 class FavoriteViewSet(ModelViewSet):
     serializer_class = FavoriteSerializer
+    permission_classes = [IsAuthenticated]
     pagination_class = None
 
     def get_queryset(self):
@@ -76,5 +85,42 @@ class FavoriteViewSet(ModelViewSet):
                         headers=headers)
 
 
-class AuthCustomViewSet(ModelViewSet):
-    pass
+class LoginViewSet(ModelViewSet):
+    permission_classes = (AllowAny,)
+
+    def create(self, request, *args, **kwargs):
+        # print(request.data['email'])
+        user = User.objects.filter(email=request.data['email'])
+        token = RefreshToken.for_user(user)
+        return Response({'token': token}, status=status.HTTP_201_CREATED)
+
+
+class LoginView(TokenObtainPairView):
+    permission_classes = [AllowAny]
+    serializer = LoginSerializer
+    #
+    # def post(self, request, *args, **kwargs):
+    #     serializer = LoginSerializer(data=request.data)
+    #     try:
+    #         serializer.is_valid(raise_exception=True)
+    #     except TokenError as e:
+    #         raise InvalidToken(e.args[0])
+    #     return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
+
+
+class LogoutView(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = LogoutSerializer
+    # www_authenticate_realm = 'api'
+    # def get_authenticate_header(self, request):
+    #     return '{0} realm="{1}"'.format(
+    #         AUTH_HEADER_TYPES[0],
+    #         self.www_authenticate_realm,
+    #     )
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
