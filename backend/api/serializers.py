@@ -1,11 +1,13 @@
 from rest_framework import serializers
+from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
 from django.shortcuts import get_object_or_404
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, \
-    TokenRefreshSerializer
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import authenticate, get_user_model
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -138,25 +140,38 @@ class FavoriteSerializer(serializers.ModelSerializer):
         Favorite.objects.create(user=user, recipe=recipe)
 
 
-class LoginSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        return token
-
-
-class LogoutSerializer(TokenRefreshSerializer):
-    refresh = serializers.ReadOnlyField()
+class LoginSerializer(serializers.Serializer):
+    email = serializers.CharField(
+        label=_("email"),
+        write_only=True
+    )
+    password = serializers.CharField(
+        label=_("Password"),
+        style={'input_type': 'password'},
+        trim_whitespace=False,
+        write_only=True
+    )
+    token = serializers.CharField(
+        label=_("Token"),
+        read_only=True
+    )
 
     def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        if email and password:
+            username = User.objects.get(email=email).username
+            user = authenticate(request=self.context.get('request'),
+                                username=username, password=password)
+            if not user:
+                msg = _('Unable to log in with provided credentials.')
+                raise serializers.ValidationError(msg, code='authorization')
+        else:
+            msg = _('Must include "email" and "password".')
+            raise serializers.ValidationError(msg, code='authorization')
+        attrs['user'] = user
         return attrs
 
-    def save(self, validated_data):
-        print(self.context['request'].user)
-        user = User.objects.get(username=self.context['request'].user)
-        token = RefreshToken.for_user(user)
-        token.blacklist
-        token.set_jti()
-        token.set_exp()
 
-
+class LogoutSerializer(serializers.Serializer):
+    pass

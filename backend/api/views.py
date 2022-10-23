@@ -1,10 +1,13 @@
 from django.shortcuts import get_object_or_404
+from djoser.views import TokenDestroyView
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken import views
 
 from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
@@ -27,7 +30,8 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
                   ):
     queryset = User.objects.all()
     lookup_field = 'id'
-    permission_classes = IsAuthenticated
+
+    # permission_classes = IsAuthenticated
 
     def get_object(self):
         if self.kwargs.get('id') == USERNAME_ME:
@@ -85,42 +89,19 @@ class FavoriteViewSet(ModelViewSet):
                         headers=headers)
 
 
-class LoginViewSet(ModelViewSet):
+class LoginViewSet(views.ObtainAuthToken):
     permission_classes = (AllowAny,)
-
-    def create(self, request, *args, **kwargs):
-        # print(request.data['email'])
-        user = User.objects.filter(email=request.data['email'])
-        token = RefreshToken.for_user(user)
-        return Response({'token': token}, status=status.HTTP_201_CREATED)
-
-
-class LoginView(TokenObtainPairView):
-    permission_classes = [AllowAny]
-    serializer = LoginSerializer
-    #
-    # def post(self, request, *args, **kwargs):
-    #     serializer = LoginSerializer(data=request.data)
-    #     try:
-    #         serializer.is_valid(raise_exception=True)
-    #     except TokenError as e:
-    #         raise InvalidToken(e.args[0])
-    #     return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
-
-
-class LogoutView(ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    serializer_class = LogoutSerializer
-    # www_authenticate_realm = 'api'
-    # def get_authenticate_header(self, request):
-    #     return '{0} realm="{1}"'.format(
-    #         AUTH_HEADER_TYPES[0],
-    #         self.www_authenticate_realm,
-    #     )
+    serializer_class = LoginSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'auth_token': token.key, },
+                        status=status.HTTP_201_CREATED)
 
+
+class LogoutViewSet(TokenDestroyView):
+    permission_classes = [IsAuthenticated]
