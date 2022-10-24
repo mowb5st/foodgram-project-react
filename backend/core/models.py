@@ -1,5 +1,7 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.contrib.auth import get_user_model
+
 
 User = get_user_model()
 
@@ -8,17 +10,37 @@ CHOICES = {}
 
 class Ingredient(models.Model):
     name = models.CharField('Name', max_length=200)
-    amount = models.IntegerField("Amount of ingredients")
     measurement_unit = models.CharField("Measurement unit", max_length=20)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Ingredient'
+        verbose_name_plural = 'Ingredients'
 
     def __str__(self):
         return self.name
+
+
+class Ingredient2Recipe(models.Model):
+    # модель рецепта связывается с этой моделью, а эта модель связывается с
+    # ингредиетом
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE,
+                                   verbose_name="Recipe's ingredient")
+    amount = models.IntegerField("Amount of ingredients")
+
+    def __str__(self):
+        return f'{self.ingredient}, {self.amount}'
 
 
 class Tag(models.Model):
     name = models.CharField('Name', max_length=50)
     color = models.CharField('HEX color', max_length=8)
     slug = models.SlugField('URL', unique=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Tag'
+        verbose_name_plural = 'Tags'
 
     def __str__(self):
         return self.name
@@ -35,12 +57,12 @@ class Recipe(models.Model):
         max_length=200)
     image = models.ImageField(
         "Recipe's Image",
-        upload_to='core/'
+        upload_to='media/recipes/'
     )
     text = models.TextField(
         "Recipe's text", max_length=2000)
     ingredients = models.ManyToManyField(
-        Ingredient,
+        Ingredient2Recipe,
         # on_delete=models.CASCADE,
         related_name='ingredients',
     )
@@ -50,6 +72,7 @@ class Recipe(models.Model):
         # on_delete=models.CASCADE
     )
     cooking_time = models.IntegerField('Cooking time')
+    pub_date = models.DateTimeField('Publication date', auto_now_add=True)
 
     def __str__(self):
         return self.name

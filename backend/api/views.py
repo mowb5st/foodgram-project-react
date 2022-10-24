@@ -13,7 +13,8 @@ from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
 from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
     SubscriptionSerializer, UserSubSerializer, FavoriteSerializer, \
-    RecipeSubSerializer, LoginSerializer, LogoutSerializer
+    RecipeSubSerializer, LoginSerializer, LogoutSerializer, \
+    RecipeCreateSerializer
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, \
     TokenRefreshView
@@ -60,7 +61,13 @@ class SubscriptionViewSet(ModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    # serializer_class = RecipeSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return RecipeSerializer
+        if self.action == 'create':
+            return RecipeCreateSerializer
 
 
 class FavoriteViewSet(ModelViewSet):

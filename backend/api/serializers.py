@@ -2,10 +2,12 @@ from rest_framework import serializers
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from core.models import Recipe, Tag, Ingredient, Follow, Favorite
+from core.models import Recipe, Tag, Ingredient, Follow, Favorite, \
+    Ingredient2Recipe
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate, get_user_model
+from drf_base64.fields import Base64ImageField
 
 User = get_user_model()
 
@@ -118,14 +120,48 @@ class RecipeSerializer(serializers.ModelSerializer):
                   'cooking_time')
 
 
-class RecipeSubSerializer(serializers.ModelSerializer):
-    # id = name = image = cooking_time = serializers.StringRelatedField()
+class Ingredient2RecipeCreateSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    class Meta:
+        model = Ingredient2Recipe
+        fields = ('id', 'amount')
 
+
+class RecipeCreateSerializer(serializers.ModelSerializer):
+    ingredients = Ingredient2RecipeCreateSerializer(many=True)
+    image = Base64ImageField(use_url=True)
+
+    class Meta:
+        model = Recipe
+        fields = ('ingredients', 'tags', 'image', 'name', 'text',
+                  'cooking_time')
+
+    def add_tags(self, tags, recipe):
+        for tag in tags:
+            recipe.tags.add(tag)
+
+    def add_ingredients(self, ingredients, recipe):
+        for ingredient in ingredients:
+            ingredient_relation, created = Ingredient2Recipe.objects.get_or_create(
+                ingredient=ingredient['id'], amount=ingredient['amount']
+            )
+            recipe.ingredients.add(ingredient_relation.pk)
+
+    def create(self, validated_data):
+        author = self.context.get('request').user
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        recipe = Recipe.objects.create(author=author, **validated_data)
+        self.add_tags(tags, recipe)
+        self.add_ingredients(ingredients, recipe)
+        return recipe
+
+
+class RecipeSubSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
             'id', 'name', 'image', 'cooking_time')
-        # read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
