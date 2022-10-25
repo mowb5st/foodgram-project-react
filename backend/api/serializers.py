@@ -96,12 +96,29 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = ('author', 'recipes')
 
 
-class IngredientSerializer(serializers.ModelSerializer):
-    name = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    # amount = serializers.PrimaryKeyRelatedField(queryset=IngredientRecipe.objects.all())
+class TagSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Ingredient
-        fields = ('id', 'name', 'measurement_unit',)
+        model = Tag
+        fields = '__all__'
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='ingredient.id')
+    name = serializers.StringRelatedField(source='ingredient')
+    measurement_unit = serializers.StringRelatedField(
+        source='ingredient.measurement_unit')
+
+    class Meta:
+        # for model = IngredientRecipe ::: fields will be: id, amount, ingredient with int values
+        model = IngredientRecipe
+        fields = (
+            # '__all__'
+            'id',
+            'name',
+            'measurement_unit',
+            'amount',
+            # 'ingredient'
+        )
 
 
 class Ingredient2RecipeCreateSerializer(serializers.ModelSerializer):
@@ -115,7 +132,7 @@ class Ingredient2RecipeCreateSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     ingredients = IngredientSerializer(many=True)
-    tags = serializers.StringRelatedField(many=True)
+    tags = TagSerializer(many=True)
     is_favorite = serializers.StringRelatedField(
         default='TODO')  # !TODO add is_favorite field
     is_in_shopping_card = serializers.StringRelatedField(
@@ -124,7 +141,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def get_ingredients(self, obj):
         request = self.context['request']
         serializer = IngredientSerializer(
-            obj,
+            obj.ingredients,
             context={'request': request}
         )
         return serializer.data
