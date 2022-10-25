@@ -62,6 +62,7 @@ class SubscriptionViewSet(ModelViewSet):
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     # serializer_class = RecipeSerializer
+    lookup_field = 'pk'
 
     def get_serializer_class(self):
         if self.action == 'list':

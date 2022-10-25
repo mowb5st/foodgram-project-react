@@ -3,9 +3,9 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite, \
-    Ingredient2Recipe
+    IngredientRecipe
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as __
 from django.contrib.auth import authenticate, get_user_model
 from drf_base64.fields import Base64ImageField
 
@@ -96,14 +96,38 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = ('author', 'recipes')
 
 
+class IngredientSerializer(serializers.ModelSerializer):
+    name = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    # amount = serializers.PrimaryKeyRelatedField(queryset=IngredientRecipe.objects.all())
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'name', 'measurement_unit',)
+
+
+class Ingredient2RecipeCreateSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+
+    class Meta:
+        model = IngredientRecipe
+        fields = ('id', 'amount')
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
-    ingredients = serializers.StringRelatedField(many=True)
+    ingredients = IngredientSerializer(many=True)
     tags = serializers.StringRelatedField(many=True)
     is_favorite = serializers.StringRelatedField(
         default='TODO')  # !TODO add is_favorite field
     is_in_shopping_card = serializers.StringRelatedField(
         default='TODO')  # !TODO add is_in_shopping_card field
+
+    def get_ingredients(self, obj):
+        request = self.context['request']
+        serializer = IngredientSerializer(
+            obj,
+            context={'request': request}
+        )
+        return serializer.data
 
     def get_author(self, obj):
         request = self.context['request']
@@ -118,13 +142,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'tags', 'author', 'ingredients', 'is_favorite',
                   'is_in_shopping_card', 'name', 'image', 'text',
                   'cooking_time')
-
-
-class Ingredient2RecipeCreateSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    class Meta:
-        model = Ingredient2Recipe
-        fields = ('id', 'amount')
+        lookup_field = 'pk'
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
@@ -142,10 +160,17 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     def add_ingredients(self, ingredients, recipe):
         for ingredient in ingredients:
-            ingredient_relation, created = Ingredient2Recipe.objects.get_or_create(
-                ingredient=ingredient['id'], amount=ingredient['amount']
+            ingredient_obj = ingredient['id']
+            amount = ingredient['amount']
+            relation_obj, created = IngredientRecipe.objects.get_or_create(
+                ingredient=ingredient_obj, amount=amount
             )
-            recipe.ingredients.add(ingredient_relation.pk)
+            if created:
+                recipe.ingredients.add(created)
+            else:
+                # recipe_last = Recipe.objects.get(id=recipe.id).ingredients.add(relation_obj)
+                # return recipe_last
+                recipe.ingredients.add(relation_obj)
 
     def create(self, validated_data):
         author = self.context.get('request').user
@@ -178,17 +203,17 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField(
-        label=_("email"),
+        label=__("email"),
         write_only=True
     )
     password = serializers.CharField(
-        label=_("Password"),
+        label=__("Password"),
         style={'input_type': 'password'},
         trim_whitespace=False,
         write_only=True
     )
     token = serializers.CharField(
-        label=_("Token"),
+        label=__("Token"),
         read_only=True
     )
 
@@ -200,10 +225,10 @@ class LoginSerializer(serializers.Serializer):
             user = authenticate(request=self.context.get('request'),
                                 username=username, password=password)
             if not user:
-                msg = _('Unable to log in with provided credentials.')
+                msg = __('Unable to log in with provided credentials.')
                 raise serializers.ValidationError(msg, code='authorization')
         else:
-            msg = _('Must include "email" and "password".')
+            msg = __('Must include "email" and "password".')
             raise serializers.ValidationError(msg, code='authorization')
         attrs['user'] = user
         return attrs

@@ -21,12 +21,14 @@ class Ingredient(models.Model):
         return self.name
 
 
-class Ingredient2Recipe(models.Model):
+class IngredientRecipe(models.Model):
     # модель рецепта связывается с этой моделью, а эта модель связывается с
     # ингредиетом
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE,
-                                   verbose_name="Recipe's ingredient")
-    amount = models.IntegerField("Amount of ingredients")
+    ingredient = models.ForeignKey(Ingredient,
+                                   on_delete=models.CASCADE,
+                                   verbose_name="Recipe's ingredient",
+                                   related_name='recipe_ingredients')
+    amount = models.IntegerField("Amount of ingredients", blank=False)
 
     def __str__(self):
         return f'{self.ingredient}, {self.amount}'
@@ -62,9 +64,10 @@ class Recipe(models.Model):
     text = models.TextField(
         "Recipe's text", max_length=2000)
     ingredients = models.ManyToManyField(
-        Ingredient2Recipe,
+        IngredientRecipe,
         # on_delete=models.CASCADE,
         related_name='ingredients',
+        blank=True
     )
     tags = models.ManyToManyField(
         Tag,

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import Ingredient, Tag, Recipe, Follow, Favorite, \
-    Ingredient2Recipe
+    IngredientRecipe
 
 
 class IngredientAdmin(admin.ModelAdmin):
@@ -32,5 +32,5 @@ admin.site.register(Tag, TagAdmin)
 admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Follow, FollowAdmin)
 admin.site.register(Favorite, FavoriteAdmin)
-admin.site.register(Ingredient2Recipe, Ingredient2RecipeAdmin)
+admin.site.register(IngredientRecipe, Ingredient2RecipeAdmin)
 
