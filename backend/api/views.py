@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenDestroyView
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -13,8 +14,8 @@ from users.models import User
 from core.models import Recipe, Tag, Ingredient, Follow, Favorite
 from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
     SubscriptionSerializer, UserSubSerializer, FavoriteSerializer, \
-    RecipeSubSerializer, LoginSerializer, LogoutSerializer, \
-    RecipeCreateSerializer
+    RecipeSubSerializer, LoginSerializer, \
+    RecipeCreateSerializer, TagSerializer
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, \
     TokenRefreshView
@@ -61,8 +62,10 @@ class SubscriptionViewSet(ModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-    # serializer_class = RecipeSerializer
-    lookup_field = 'pk'
+
+    # filter_backends = (DjangoFilterBackend,)
+    # filterset_fields = ('id',)
+    # lookup_field = 'id'
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -113,3 +116,9 @@ class LoginViewSet(views.ObtainAuthToken):
 
 class LogoutViewSet(TokenDestroyView):
     permission_classes = [IsAuthenticated]
+
+
+class TagViewSet(ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    lookup_field = 'id'

@@ -159,7 +159,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'tags', 'author', 'ingredients', 'is_favorite',
                   'is_in_shopping_card', 'name', 'image', 'text',
                   'cooking_time')
-        lookup_field = 'pk'
+        # lookup_field = 'id'
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
@@ -251,5 +251,7 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class LogoutSerializer(serializers.Serializer):
-    pass
+# class TagSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Tag
+#         fields = '__all__'

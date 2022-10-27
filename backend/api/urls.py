@@ -7,14 +7,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView, \
 from django.views.decorators.csrf import csrf_exempt
 
 from .views import UserViewSet, RecipeViewSet, SubscriptionViewSet, \
-    FavoriteViewSet, LoginViewSet, LogoutViewSet
+    FavoriteViewSet, LoginViewSet, LogoutViewSet, TagViewSet
 
 app_name = 'api'
 
 router = routers.DefaultRouter()
 router.register(r'recipes/(?P<recipe_id>\d+)/favorite', FavoriteViewSet,
                 basename='favorites')
-router.register(r'recipes', RecipeViewSet, basename='recipe')
+router.register('recipes', RecipeViewSet, basename='recipes')
+router.register('tags', TagViewSet, basename='tags')
 
 
 urlpatterns = [
