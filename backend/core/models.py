@@ -81,7 +81,7 @@ class Recipe(models.Model):
         return self.name
 
 
-class Follow(models.Model):
+class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         verbose_name='Подписчик',
@@ -129,6 +129,33 @@ class Favorite(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['user', 'recipe'],
                                     name='unique_favorite')
+        ]
+
+    def __str__(self):
+        return f'{self.user}, {self.recipe}'
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User,
+        verbose_name='Пользователь',
+        related_name='shopping_user',
+        help_text='Пользователь, который добавляет рецепт',
+        on_delete=models.CASCADE,
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='На кого подписался',
+        related_name='shopping_recipe',
+        help_text='Рецепт, добавляемый в список покупок',
+        on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        db_table = 'shopping_cart'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'recipe'],
+                                    name='unique_shopping_cart')
         ]
 
     def __str__(self):

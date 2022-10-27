@@ -2,8 +2,8 @@ from rest_framework import serializers
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from core.models import Recipe, Tag, Ingredient, Follow, Favorite, \
-    IngredientRecipe
+from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
+    IngredientRecipe, ShoppingCart
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as __
 from django.contrib.auth import authenticate, get_user_model
@@ -23,7 +23,7 @@ class UserEventSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context['request'].user
-        return Follow.objects.filter(user=user, author=obj).exists()
+        return Subscription.objects.filter(user=user, author=obj).exists()
 
     class Meta:
         model = User
@@ -70,6 +70,12 @@ class MeUserSerializer(UserSerializer):
     pass
 
 
+class SubscriptionModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscription
+        fields = '__all__'
+
+
 class SubscriptionSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField(read_only=True)
     recipes = serializers.SerializerMethodField()
@@ -92,13 +98,19 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return serializer.data
 
     class Meta:
-        model = Follow
+        model = Subscription
         fields = ('author', 'recipes')
 
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
+        fields = '__all__'
+
+
+class IngredientModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
         fields = '__all__'
 
 
@@ -250,8 +262,7 @@ class LoginSerializer(serializers.Serializer):
         attrs['user'] = user
         return attrs
 
-
-# class TagSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Tag
-#         fields = '__all__'
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingCart
+        fields = ('id', 'name', 'image', 'cooking_time')
