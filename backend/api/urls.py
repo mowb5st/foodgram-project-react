@@ -17,7 +17,7 @@ router.register(r'recipes/(?P<id>\d+)/favorite', FavoriteViewSet,
                 basename='favorites')
 router.register(r'recipes/(?P<id>\d+)/shopping_cart', ShoppingCartViewSet,
                 basename='favorites')
-router.register(r'recipes/download_shopping_cart', ShoppingCartViewSet,
+router.register('recipes/download_shopping_cart', ShoppingCartViewSet,
                 basename='favorites')
 router.register('recipes', RecipeViewSet, basename='recipes')
 router.register('tags', TagViewSet, basename='tags')
