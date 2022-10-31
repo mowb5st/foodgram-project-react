@@ -81,16 +81,15 @@ class SubscriptionViewSet(ModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-
+    serializer_class = RecipeSerializer
     # filter_backends = (DjangoFilterBackend,)
     # filterset_fields = ('id',)
-    # lookup_field = 'id'
+    lookup_field = 'id'
 
     def get_serializer_class(self):
-        if self.action == 'list':
-            return RecipeSerializer
-        if self.action == 'create':
-            return RecipeCreateSerializer
+        if self.action == 'list' or 'retrieve':
+            return self.serializer_class
+        return RecipeCreateSerializer
 
 
 class FavoriteViewSet(ModelViewSet):
