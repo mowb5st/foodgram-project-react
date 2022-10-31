@@ -107,8 +107,8 @@ class FavoriteViewSet(ModelViewSet):
             Favorite.objects.create(user=user, recipe=recipe)
             serializer = self.get_serializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as err:
-            return Response({'errors': str(err)},
+        except Exception as error:
+            return Response({'errors': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
@@ -118,8 +118,8 @@ class FavoriteViewSet(ModelViewSet):
             user = User.objects.get(username=self.request.user)
             Favorite.objects.get(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as err:
-            return Response({'errors': str(err)},
+        except Exception as error:
+            return Response({'errors': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -165,56 +165,29 @@ class ShoppingCartViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
         try:
             shopping_cart = {}
-            user = self.request.user
-
-            ingredients = IngredientRecipe.objects.filter(
-                recipe__recipe_ingredients__user=request.user
-            )
-            return print(ingredients)
-
-            ingredients = IngredientRecipe.objects.filter(
-                id__shopping_cart__user=request.user
-                # ingredients = IngredientRecipe.objects.filter(
-                #     ingredients__shopping_cart__user=request.user
+            ingredients = Recipe.objects.filter(
+                shopping_recipe__user=request.user
             ).values_list(
-                'ingredient__name',
-                'ingredient__measurement_unit'
-            ).annotate(amount=Sum('amount'))
-
-            # today = datetime.today()
-            # shopping_list = (
-            #     f'Список покупок для: {user.get_full_name()}\n\n'
-            #     f'Дата: {today:%Y-%m-%d}\n\n'
-            # )
-            # shopping_list += '\n'.join([
-            #     f'- {ingredient["ingredient__name"]} '
-            #     f'({ingredient["ingredient__measurement_unit"]})'
-            #     f' - {ingredient["amount"]}'
-            #     for ingredient in ingredients
-            # ])
-            # shopping_list += f'\n\nFoodgram ({today:%Y})'
-            # filename = f'{user.username}_shopping_list.txt'
-            # response = HttpResponse(shopping_cart, content_type='text/plain')
-            # response['Content-Disposition'] = f'attachment; filename={filename}'
-            # return response
-
+                'ingredients__ingredient__name',
+                'ingredients__ingredient__measurement_unit'
+            ).annotate(amount=Sum('ingredients__amount'))
             for name, measurement_unit, amount in ingredients:
                 if name not in shopping_cart:
                     shopping_cart[name] = {
                         'measurement_unit': measurement_unit,
                         'amount': amount
                     }
-            file_text = ([f"* {item}:{value['amount']}"
+            file_text = ([f"> {item}: {value['amount']}"
                           f"{value['measurement_unit']}\n"
                           for item, value in shopping_cart.items()])
             response = HttpResponse(file_text, 'Content-Type: text/plain')
-            response['Content-Length'] = file_text.count
             response['Content-Disposition'] = (
-                'attachment; filename="ShopIngredientsList.txt"')
+                f'attachment; '
+                f'filename="{self.request.user.username} shopping cart.txt"'
+            )
             return response
-
-        except Exception as err:
-            return Response({'errors': str(err)},
+        except Exception as error:
+            return Response({'errors': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
 
     def create(self, request, *args, **kwargs):
@@ -236,6 +209,6 @@ class ShoppingCartViewSet(ModelViewSet):
             user = User.objects.get(username=self.request.user)
             ShoppingCart.objects.get(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as err:
-            return Response({'errors': str(err)},
+        except Exception as error:
+            return Response({'errors': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
