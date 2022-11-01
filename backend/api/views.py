@@ -112,23 +112,61 @@ class SubscriptionViewSet(ModelViewSet):
     serializer_class = UserSubSerializer
     permission_classes = [IsAuthenticated]
 
+    # @action(methods=['GET'], detail=False, url_path='subscriptions',
+    #         url_name='subscriptions')
     def get_queryset(self):
         followings = User.objects.filter(following__user=self.request.user)
         return followings
 
-    def create(self, request, *args, **kwargs):
-        user_id = self.kwargs.get('id')
-        user = get_object_or_404(User, pk=user_id)
-        sub = Subscription.objects.create(user=self.request.user,
-                                          author=user)
-        return Response(status=status.HTTP_201_CREATED)
+    @action(methods=['GET'], detail=False)
+    def subscriptions(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
 
-    def delete(self, request, *args, **kwargs):
-        user_id = self.kwargs.get('id')
-        user = get_object_or_404(User, pk=user_id)
-        Subscription.objects.get(user=self.request.user,
-                                 author=user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['POST', 'DELETE'], detail=True, url_path='subscribe',
+            url_name='subscribes', serializer_class=None)
+    def subscribe(self, request, *args, **kwargs):
+        try:
+            user_id = self.kwargs.get('pk')
+            user = get_object_or_404(User, pk=user_id)
+            if self.request.method == 'POST':
+                Subscription.objects.create(
+                    user=self.request.user,
+                    author=user)
+                # TODO add serialized response to POST method
+                created_subscription = Subscription.objects.filter(
+                    user=self.request.user, author=user)
+                serializer = UserSubSerializer(created_subscription)
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
+            Subscription.objects.get(user=self.request.user,
+                                     author=user).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as error:
+            return Response({'errors': str(error)},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    #
+    # def create(self, request, *args, **kwargs):
+    #     user_id = self.kwargs.get('id')
+    #     user = get_object_or_404(User, pk=user_id)
+    #     sub = Subscription.objects.create(user=self.request.user,
+    #                                       author=user)
+    #     return Response(status=status.HTTP_201_CREATED)
+    #
+    # def delete(self, request, *args, **kwargs):
+    #     user_id = self.kwargs.get('id')
+    #     user = get_object_or_404(User, pk=user_id)
+    #     Subscription.objects.get(user=self.request.user,
+    #                              author=user).delete()
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LoginViewSet(views.ObtainAuthToken):
