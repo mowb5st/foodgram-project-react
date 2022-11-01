@@ -1,59 +1,23 @@
-from datetime import datetime
-
+from django.contrib.auth import get_user_model
 from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenDestroyView
 from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.views import APIView
-from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
-from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework.authtoken.models import Token
 from rest_framework.authtoken import views
-
-from users.models import User
-from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
-    ShoppingCart, IngredientRecipe
-from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
-    SubscriptionSerializer, UserSubSerializer, FavoriteSerializer, \
-    RecipeSubSerializer, LoginSerializer, \
-    RecipeCreateSerializer, TagSerializer, IngredientModelSerializer, \
-    SubscriptionModelSerializer
-from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView, \
-    TokenRefreshView
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
-import traceback
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
-from django.http import FileResponse, HttpResponse
-from rest_framework import viewsets, renderers
-from rest_framework.decorators import action
+from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
+    ShoppingCart
+from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
+    UserSubSerializer, FavoriteSerializer, \
+    LoginSerializer, \
+    RecipeCreateSerializer, TagSerializer, IngredientModelSerializer
 
-USERNAME_ME = 'me'
-
-
-class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
-                  mixins.RetrieveModelMixin,
-                  GenericViewSet
-                  ):
-    queryset = User.objects.all()
-    lookup_field = 'id'
-
-    # permission_classes = IsAuthenticated
-
-    def get_object(self):
-        if self.kwargs.get('id') == USERNAME_ME:
-            return self.request.user
-        return super().get_object()
-
-    def get_serializer_class(self):
-        if self.kwargs.get('username') == USERNAME_ME:
-            return MeUserSerializer
-        return UserSerializer
+User = get_user_model()
 
 
 class SubscriptionViewSet(ModelViewSet):
@@ -81,14 +45,14 @@ class SubscriptionViewSet(ModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    # serializer_class = RecipeSerializer
     # filter_backends = (DjangoFilterBackend,)
     # filterset_fields = ('id',)
     lookup_field = 'id'
 
     def get_serializer_class(self):
-        if self.action == 'list' or 'retrieve':
-            return self.serializer_class
+        if self.action == ('list' or 'retrieve'):
+            return RecipeSerializer
         return RecipeCreateSerializer
 
 

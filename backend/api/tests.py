@@ -1,37 +1,16 @@
-from django.test import Client, TestCase
-from http import HTTPStatus
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+import webcolors
 
 
-class UserTestCase(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.user = User.objects.create(email='testcase@test.com',
-                                       usenrame='testname',
-                                       first_name='test_first_name',
-                                       last_name='test_last_name',
-                                       password='testpass')
-
-    def test_user_creation(self):
-        """Проверяем что юзер успешно создан"""
-        obj_user = User.objects.filter(username='testname')
-        print(obj_user)
-        # self.assertEqual()
+def color_to_hex(color):
+    # hex_value_css = webcolors.CSS3_NAMES_TO_HEX(color)
+    hex_value = webcolors.name_to_hex(color)
+    print('input:', color, '|', 'output:', hex_value)
 
 
-# class FavoriteTestCase(TestCase):
-#     @classmethod
-#     def setUpClass(cls):
-#         super().setUpClass()
-#         cls.user = User.objects.create(email='testcase@test.com',
-#                                        usenrame='testname',
-#                                        first_name='test_first_name',
-#                                        last_name='test_last_name',
-#                                        password='testpass')
-#         cls.recipe =
-#
-#     def sub_to_recipe(self):
+def hex_to_color(hex):
+    color = webcolors.hex_to_name(hex)
+    print('input:', hex, '|', 'output:', color)
 
+
+color_to_hex('red')
+hex_to_color('#ff0000')

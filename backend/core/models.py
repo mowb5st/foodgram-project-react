@@ -35,8 +35,8 @@ class IngredientRecipe(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField('Name', max_length=50)
-    color = models.CharField('HEX color', max_length=8)
+    name = models.CharField('Name', max_length=50, unique=True)
+    color = models.CharField('HEX color', max_length=7, unique=True)
     slug = models.SlugField('URL', unique=True)
 
     class Meta:

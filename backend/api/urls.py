@@ -1,12 +1,7 @@
-from django.conf.urls import url
 from django.urls import include, path
 from rest_framework import routers
-from rest_framework.authtoken import views
-from rest_framework_simplejwt.views import TokenObtainPairView, \
-    TokenRefreshView
-from django.views.decorators.csrf import csrf_exempt
 
-from .views import UserViewSet, RecipeViewSet, SubscriptionViewSet, \
+from .views import RecipeViewSet, SubscriptionViewSet, \
     FavoriteViewSet, LoginViewSet, LogoutViewSet, TagViewSet, \
     IngredientViewSet, ShoppingCartViewSet
 

@@ -1,15 +1,31 @@
+import webcolors
+from django.contrib.auth import authenticate, get_user_model
+from django.utils.translation import gettext_lazy as __
+from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
-from rest_framework.authtoken.serializers import AuthTokenSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
     IngredientRecipe, ShoppingCart
-from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext_lazy as __
-from django.contrib.auth import authenticate, get_user_model
-from drf_base64.fields import Base64ImageField
 
 User = get_user_model()
+
+
+class Hex2NameColor(serializers.Field):
+    # При чтении данных ничего не меняем - просто возвращаем как есть
+    def to_representation(self, value):
+        return value
+
+    # При записи код цвета конвертируется в его название
+    def to_internal_value(self, data):
+        # Доверяй, но проверяй
+        try:
+            # Если имя цвета существует, то конвертируем название в код
+            data = webcolors.name_to_hex(data)
+        except ValueError:
+            # Иначе возвращаем ошибку
+            raise serializers.ValidationError('Для этого имени нет цвета')
+        # Возвращаем данные в новом формате
+        return data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -145,10 +161,16 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     ingredients = IngredientSerializer(many=True)
     tags = TagSerializer(many=True)
-    is_favorite = serializers.StringRelatedField(
-        default='TODO')  # !TODO add is_favorite field
-    is_in_shopping_card = serializers.StringRelatedField(
-        default='TODO')  # !TODO add is_in_shopping_card field
+    is_favorite = serializers.SerializerMethodField()
+    is_in_shopping_card = serializers.SerializerMethodField()
+
+    def get_author(self, obj):
+        request = self.context['request']
+        serializer = UserEventSerializer(
+            obj.author,
+            context={'request': request},
+        )
+        return serializer.data
 
     def get_ingredients(self, obj):
         request = self.context['request']
@@ -158,13 +180,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
         return serializer.data
 
-    def get_author(self, obj):
-        request = self.context['request']
-        serializer = UserEventSerializer(
-            obj.author,
-            context={'request': request},
-        )
-        return serializer.data
+    def get_is_favorite(self, obj):
+        user = self.context.get('request').user
+        return Favorite.objects.filter(user=user, recipe=obj).exists()
+
+    def get_is_in_shopping_card(self, obj):
+        user = self.context.get('request').user
+        return ShoppingCart.objects.filter(user=user, recipe=obj).exists()
 
     class Meta:
         model = Recipe
@@ -197,8 +219,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             if created:
                 recipe.ingredients.add(created)
             else:
-                # recipe_last = Recipe.objects.get(id=recipe.id).ingredients.add(relation_obj)
-                # return recipe_last
                 recipe.ingredients.add(relation_obj)
 
     def create(self, validated_data):
@@ -261,6 +281,7 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(msg, code='authorization')
         attrs['user'] = user
         return attrs
+
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
