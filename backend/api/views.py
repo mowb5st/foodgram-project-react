@@ -16,7 +16,8 @@ from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
 from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
     UserSubSerializer, FavoriteSerializer, \
     LoginSerializer, \
-    RecipeCreateSerializer, TagSerializer, IngredientModelSerializer
+    RecipeCreateSerializer, TagSerializer, IngredientModelSerializer, \
+    SubscriptionSerializer
 
 User = get_user_model()
 
@@ -131,7 +132,7 @@ class SubscriptionViewSet(ModelViewSet):
         return Response(serializer.data)
 
     @action(methods=['POST', 'DELETE'], detail=True, url_path='subscribe',
-            url_name='subscribes', serializer_class=None)
+            url_name='subscribes')
     def subscribe(self, request, *args, **kwargs):
         try:
             user_id = self.kwargs.get('pk')
@@ -140,10 +141,8 @@ class SubscriptionViewSet(ModelViewSet):
                 Subscription.objects.create(
                     user=self.request.user,
                     author=user)
-                # TODO add serialized response to POST method
-                created_subscription = Subscription.objects.filter(
-                    user=self.request.user, author=user)
-                serializer = UserSubSerializer(created_subscription)
+                queryset = User.objects.filter(pk=user_id)
+                serializer = SubscriptionSerializer(queryset)
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
             Subscription.objects.get(user=self.request.user,
