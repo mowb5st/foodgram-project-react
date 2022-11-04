@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenDestroyView
 from rest_framework import status
 from rest_framework.authtoken import views
@@ -13,6 +14,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
 from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
     ShoppingCart
+from .filters import RecipeFilter
 from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
     UserSubSerializer, FavoriteSerializer, \
     LoginSerializer, \
@@ -25,8 +27,8 @@ User = get_user_model()
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     # serializer_class = RecipeSerializer
-    # filter_backends = (DjangoFilterBackend,)
-    # filterset_fields = ('id',)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
     lookup_field = 'id'
 
     def get_serializer_class(self):
@@ -51,8 +53,8 @@ class RecipeViewSet(ModelViewSet):
                         'measurement_unit': measurement_unit,
                         'amount': amount
                     }
-            file_text = ([f"> {item}: {value['amount']}"
-                          f"{value['measurement_unit']}\n"
+            file_text = ([f"• {item} ({value['measurement_unit']}) — "
+                          f"{value['amount']}\n"
                           for item, value in shopping_cart.items()])
             response = HttpResponse(file_text, 'Content-Type: text/plain')
             response['Content-Disposition'] = (
@@ -113,8 +115,6 @@ class SubscriptionViewSet(ModelViewSet):
     serializer_class = UserSubSerializer
     permission_classes = [IsAuthenticated]
 
-    # @action(methods=['GET'], detail=False, url_path='subscriptions',
-    #         url_name='subscriptions')
     def get_queryset(self):
         followings = User.objects.filter(following__user=self.request.user)
         return followings
@@ -151,21 +151,6 @@ class SubscriptionViewSet(ModelViewSet):
         except Exception as error:
             return Response({'errors': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
-
-    #
-    # def create(self, request, *args, **kwargs):
-    #     user_id = self.kwargs.get('id')
-    #     user = get_object_or_404(User, pk=user_id)
-    #     sub = Subscription.objects.create(user=self.request.user,
-    #                                       author=user)
-    #     return Response(status=status.HTTP_201_CREATED)
-    #
-    # def delete(self, request, *args, **kwargs):
-    #     user_id = self.kwargs.get('id')
-    #     user = get_object_or_404(User, pk=user_id)
-    #     Subscription.objects.get(user=self.request.user,
-    #                              author=user).delete()
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LoginViewSet(views.ObtainAuthToken):
