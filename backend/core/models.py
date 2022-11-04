@@ -62,17 +62,16 @@ class Recipe(models.Model):
         upload_to='media/recipes/'
     )
     text = models.TextField(
-        "Recipe's text", max_length=2000)
+        "Recipe's text",
+        max_length=2000
+    )
     ingredients = models.ManyToManyField(
         IngredientRecipe,
-        # on_delete=models.CASCADE,
         related_name='ingredients',
-        blank=True
     )
     tags = models.ManyToManyField(
         Tag,
         related_name='tags',
-        # on_delete=models.CASCADE
     )
     cooking_time = models.IntegerField('Cooking time')
     pub_date = models.DateTimeField('Publication date', auto_now_add=True)
