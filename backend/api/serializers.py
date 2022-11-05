@@ -4,28 +4,12 @@ from django.utils.translation import gettext_lazy as __
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
 
-from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
+from core.models import (
+    Recipe, Tag, Ingredient, Subscription, Favorite,
     IngredientRecipe, ShoppingCart
+)
 
 User = get_user_model()
-
-
-class Hex2NameColor(serializers.Field):
-    # При чтении данных ничего не меняем - просто возвращаем как есть
-    def to_representation(self, value):
-        return value
-
-    # При записи код цвета конвертируется в его название
-    def to_internal_value(self, data):
-        # Доверяй, но проверяй
-        try:
-            # Если имя цвета существует, то конвертируем название в код
-            data = webcolors.name_to_hex(data)
-        except ValueError:
-            # Иначе возвращаем ошибку
-            raise serializers.ValidationError('Для этого имени нет цвета')
-        # Возвращаем данные в новом формате
-        return data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -76,6 +60,7 @@ class UserSubSerializer(UserEventSerializer):
             'recipes_count'
         )
 
+
 class UserSubPostSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
@@ -83,7 +68,6 @@ class UserSubPostSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         return attrs
-
 
     def get_recipes(self, obj):
         queryset = Recipe.objects.filter(author=obj.id)

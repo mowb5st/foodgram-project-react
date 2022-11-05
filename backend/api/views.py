@@ -3,7 +3,7 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from djoser.views import TokenDestroyView
+from djoser.views import TokenDestroyView, UserViewSet
 from rest_framework import status
 from rest_framework.authtoken import views
 from rest_framework.authtoken.models import Token
@@ -12,21 +12,22 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
-from core.models import Recipe, Tag, Ingredient, Subscription, Favorite, \
+from core.models import (
+    Recipe, Tag, Ingredient, Subscription, Favorite,
     ShoppingCart
+)
 from .filters import RecipeFilter
-from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
-    UserSubSerializer, FavoriteSerializer, \
-    LoginSerializer, \
-    RecipeCreateSerializer, TagSerializer, IngredientModelSerializer, \
-    SubscriptionSerializer, UserSubPostSerializer
+from .permissions import IsAuthenticatedOrOwnerOrAdmin
+from .serializers import (
+    UserSerializer, MeUserSerializer, RecipeSerializer, UserSubSerializer,
+    FavoriteSerializer, LoginSerializer, RecipeCreateSerializer, TagSerializer,
+    IngredientModelSerializer, SubscriptionSerializer, UserSubPostSerializer)
 
 User = get_user_model()
 
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-    # serializer_class = RecipeSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     lookup_field = 'id'
@@ -35,7 +36,7 @@ class RecipeViewSet(ModelViewSet):
         if self.request.method in SAFE_METHODS:
             permission_classes = [AllowAny]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsAuthenticatedOrOwnerOrAdmin]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
@@ -44,8 +45,15 @@ class RecipeViewSet(ModelViewSet):
         return RecipeCreateSerializer
 
     @action(methods=['GET'], detail=False, url_path='download_shopping_cart',
-            url_name='download_shopping_cart')
+            url_name='download_shopping_cart',
+            permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request, *args, **kwargs):
+        if not self.request.user.is_authenticated:
+            return Response(
+                {
+                    "detail": "Учетные данные не были предоставлены."
+                },
+                status=status.HTTP_401_UNAUTHORIZED)
         try:
             shopping_cart = {}
             ingredients = Recipe.objects.filter(
@@ -74,7 +82,8 @@ class RecipeViewSet(ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['POST', 'DELETE'], detail=True,
-            url_path='shopping_cart', url_name='shopping_carts')
+            url_path='shopping_cart', url_name='shopping_carts',
+            permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
         try:
             if self.request.method == 'POST':
@@ -96,7 +105,7 @@ class RecipeViewSet(ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['POST', 'DELETE'], detail=True, url_path='favorite',
-            url_name='favorites')
+            url_name='favorites', permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
         try:
             if self.request.method == 'POST':
@@ -189,6 +198,7 @@ class TagViewSet(mixins.RetrieveModelMixin,
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     lookup_field = 'id'
+    permission_classes = [IsAuthenticated]
 
 
 class IngredientViewSet(mixins.RetrieveModelMixin,
@@ -197,3 +207,48 @@ class IngredientViewSet(mixins.RetrieveModelMixin,
     queryset = Ingredient.objects.all()
     serializer_class = IngredientModelSerializer
     lookup_field = 'id'
+    permission_classes = [IsAuthenticated]
+
+
+class DjoserCustomAndSubscriptionViewSet(UserViewSet):
+
+    @action(methods=['GET'], detail=False,
+            serializer_class=UserSubSerializer,
+            permission_classes=[IsAuthenticated])
+    def subscriptions(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(
+            User.objects.filter(following__user=self.request.user))
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['POST', 'DELETE'], detail=True, url_path='subscribe',
+            url_name='subscribes',
+            serializer_class=UserSubSerializer,
+            permission_classes=[IsAuthenticated])
+    def subscribe(self, request, *args, **kwargs):
+        try:
+            user_id = self.kwargs.get('id')
+            user = get_object_or_404(User, pk=user_id)
+            requester = self.request.user
+            if user == requester:
+                return Response(
+                    {'errors:': 'Нельзя подписаться на самого себя!'})
+            if self.request.method == 'POST':
+                serializer = UserSubPostSerializer(user)
+                Subscription.objects.create(
+                    user=self.request.user,
+                    author=user)
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
+            Subscription.objects.get(user=self.request.user,
+                                     author=user).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as error:
+            return Response({'errors': str(error)},
+                            status=status.HTTP_400_BAD_REQUEST)

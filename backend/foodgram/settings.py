@@ -98,9 +98,9 @@ REST_FRAMEWORK = {
     # 'DEFAULT_FILTER_BACKENDS': (
     #     'django_filters.rest_framework.DjangoFilterBackend',
     # ),
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.AllowAny',
-    # ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # 'rest_framework.authentication.BasicAuthentication',
         # 'rest_framework.authentication.SessionAuthentication',
@@ -120,6 +120,12 @@ DJOSER = {
         'current_user': 'api.serializers.UserEventSerializer',
         'user_create': 'api.serializers.UserSerializer',
     },
+    'PERMISSIONS': {
+        'activation': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
+        'set_password': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
+        'user_delete': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
+        # 'user': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
+    }
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
