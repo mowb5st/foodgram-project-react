@@ -19,7 +19,7 @@ from .serializers import UserSerializer, MeUserSerializer, RecipeSerializer, \
     UserSubSerializer, FavoriteSerializer, \
     LoginSerializer, \
     RecipeCreateSerializer, TagSerializer, IngredientModelSerializer, \
-    SubscriptionSerializer
+    SubscriptionSerializer, UserSubPostSerializer
 
 User = get_user_model()
 
@@ -118,7 +118,10 @@ class RecipeViewSet(ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-class SubscriptionViewSet(ModelViewSet):
+class SubscriptionViewSet(mixins.ListModelMixin,
+                          mixins.CreateModelMixin,
+                          mixins.DestroyModelMixin,
+                          GenericViewSet):
     serializer_class = UserSubSerializer
     permission_classes = [IsAuthenticated]
 
@@ -141,23 +144,25 @@ class SubscriptionViewSet(ModelViewSet):
     @action(methods=['POST', 'DELETE'], detail=True, url_path='subscribe',
             url_name='subscribes')
     def subscribe(self, request, *args, **kwargs):
-        try:
-            user_id = self.kwargs.get('pk')
-            user = get_object_or_404(User, pk=user_id)
-            if self.request.method == 'POST':
-                Subscription.objects.create(
-                    user=self.request.user,
-                    author=user)
-                queryset = User.objects.filter(pk=user_id)
-                serializer = SubscriptionSerializer(queryset)
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
-            Subscription.objects.get(user=self.request.user,
-                                     author=user).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as error:
-            return Response({'errors': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)
+        # try:
+        user_id = self.kwargs.get('pk')
+        user = get_object_or_404(User, pk=user_id)
+        requester = self.request.user
+        if user == requester:
+            return Response({'errors:': 'Нельзя подписаться на самого себя!'})
+        if self.request.method == 'POST':
+            serializer = UserSubPostSerializer(user)
+            Subscription.objects.create(
+                user=self.request.user,
+                author=user)
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED)
+        Subscription.objects.get(user=self.request.user,
+                                 author=user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    # except Exception as error:
+    #     return Response({'errors': str(error)},
+    #                     status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginViewSet(views.ObtainAuthToken):

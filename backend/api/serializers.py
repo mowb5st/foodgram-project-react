@@ -38,7 +38,7 @@ class UserEventSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
-        user = self.context['request'].user
+        user = self.context.get('request').user
         if not user.is_authenticated:
             return False
         return Subscription.objects.filter(user=user, author=obj).exists()
@@ -56,26 +56,49 @@ class UserSubSerializer(UserEventSerializer):
     recipes_count = serializers.SerializerMethodField()
 
     def get_recipes(self, obj):
-        # queryset = Recipe.objects.filter(author=obj.username)
         queryset = Recipe.objects.filter(author=obj.id)
-        # request = self.context['request']
         serializer = RecipeSubSerializer(
             instance=queryset,
             many=True,
-            # context={'request': request}
         )
         return serializer.data
 
     def get_recipes_count(self, obj):
         queryset = Recipe.objects.filter(author=obj.id).count()
-        # serializer = RecipeSubSerializer(
-        #     queryset, many=True
-        # )
         return queryset
 
     class Meta:
         model = User
-        # fields = ('email', 'id')
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count'
+        )
+
+class UserSubPostSerializer(serializers.ModelSerializer):
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+    is_subscribed = serializers.CharField(default=True)
+
+    def validate(self, attrs):
+        return attrs
+
+
+    def get_recipes(self, obj):
+        queryset = Recipe.objects.filter(author=obj.id)
+        serializer = RecipeSubSerializer(
+            instance=queryset,
+            many=True,
+        )
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        queryset = Recipe.objects.filter(author=obj.id).count()
+        return queryset
+
+    class Meta:
+        model = User
         fields = (
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed',
@@ -99,7 +122,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
 
     def get_author(self, obj):
-        request = self.context['request']
+        request = self.context.get('request')
         serializer = UserEventSerializer(
             obj.author,
             context={'request': request},
