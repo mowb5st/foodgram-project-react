@@ -1,10 +1,12 @@
+import django_filters
 from django_filters import ModelMultipleChoiceFilter
+
+from core.models import Recipe, Tag
+
 # from django_filters.rest_framework import FilterSet, NumberFilter, CharFilter, \
 #     BooleanFilter
 
-import django_filters
 
-from core.models import Recipe, Tag
 
 
 # class RecipeFilterSet(FilterSet):

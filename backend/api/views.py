@@ -8,21 +8,19 @@ from rest_framework import status
 from rest_framework.authtoken import views
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
-from core.models import (
-    Recipe, Tag, Ingredient, Subscription, Favorite,
-    ShoppingCart
-)
+from core.models import Ingredient, Recipe, Tag
+
 from .filters import RecipeFilter
 from .permissions import IsAuthenticatedOrOwnerOrAdmin
 from .serializers import (
-    UserSerializer, MeUserSerializer, RecipeSerializer, UserSubSerializer,
-    FavoriteSerializer, LoginSerializer, RecipeCreateSerializer, TagSerializer,
-    IngredientModelSerializer, SubscriptionSerializer, UserSubPostSerializer,
-    ShoppingCartSerializer)
+    FavoriteSerializer, IngredientModelSerializer, LoginSerializer,
+    RecipeCreateSerializer, RecipeSerializer, ShoppingCartSerializer,
+    TagSerializer, UserSubPostSerializer, UserSubSerializer
+)
 
 User = get_user_model()
 
@@ -113,71 +111,6 @@ class RecipeViewSet(ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class SubscriptionViewSet(mixins.ListModelMixin,
-                          mixins.CreateModelMixin,
-                          mixins.DestroyModelMixin,
-                          GenericViewSet):
-    serializer_class = UserSubSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        followings = User.objects.filter(following__user=self.request.user)
-        return followings
-
-    @action(methods=['GET'], detail=False)
-    def subscriptions(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(methods=['POST', 'DELETE'], detail=True, url_path='subscribe',
-            url_name='subscribes')
-    def subscribe(self, request, *args, **kwargs):
-        # try:
-        user_id = self.kwargs.get('pk')
-        user = get_object_or_404(User, pk=user_id)
-        requester = self.request.user
-        if user == requester:
-            return Response({'errors:': 'Нельзя подписаться на самого себя!'})
-        if self.request.method == 'POST':
-            serializer = UserSubPostSerializer(user)
-            Subscription.objects.create(
-                user=self.request.user,
-                author=user)
-            return Response(serializer.data,
-                            status=status.HTTP_201_CREATED)
-        Subscription.objects.get(user=self.request.user,
-                                 author=user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    # except Exception as error:
-    #     return Response({'errors': str(error)},
-    #                     status=status.HTTP_400_BAD_REQUEST)
-
-
-class LoginViewSet(views.ObtainAuthToken):
-    permission_classes = (AllowAny,)
-    serializer_class = LoginSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({'auth_token': token.key, },
-                        status=status.HTTP_201_CREATED)
-
-
-class LogoutViewSet(TokenDestroyView):
-    permission_classes = [IsAuthenticated]
-
-
 class TagViewSet(mixins.RetrieveModelMixin,
                  mixins.ListModelMixin,
                  GenericViewSet):
@@ -232,3 +165,21 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
                             status=status.HTTP_201_CREATED)
         serializer.destroy(user, author)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LoginViewSet(views.ObtainAuthToken):
+    permission_classes = (AllowAny,)
+    serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'auth_token': token.key, },
+                        status=status.HTTP_201_CREATED)
+
+
+class LogoutViewSet(TokenDestroyView):
+    permission_classes = [IsAuthenticated]

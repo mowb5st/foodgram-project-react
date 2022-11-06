@@ -1,7 +1,5 @@
-from django.core.validators import MinValueValidator
-from django.db import models
 from django.contrib.auth import get_user_model
-
+from django.db import models
 
 User = get_user_model()
 
@@ -120,7 +118,7 @@ class Favorite(models.Model):
     )
     recipe = models.ForeignKey(
         Recipe,
-        verbose_name='На кого подписался',
+        verbose_name='Рецепт',
         related_name='favorite_recipe',
         help_text='Рецепт, добавляемый в избранное',
         on_delete=models.CASCADE,
@@ -147,7 +145,7 @@ class ShoppingCart(models.Model):
     )
     recipe = models.ForeignKey(
         Recipe,
-        verbose_name='На кого подписался',
+        verbose_name='Рецепт',
         related_name='shopping_recipe',
         help_text='Рецепт, добавляемый в список покупок',
         on_delete=models.CASCADE,

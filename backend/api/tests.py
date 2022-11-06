@@ -3,14 +3,14 @@ import base64
 import json
 import tempfile
 
-from PIL import Image
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.urls import reverse
+from PIL import Image
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from core.models import Ingredient, Tag, Recipe, Subscription
+from core.models import Ingredient, Recipe, Subscription, Tag
 from users.models import User
 
 
