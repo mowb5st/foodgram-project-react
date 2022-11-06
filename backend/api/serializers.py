@@ -66,9 +66,6 @@ class UserSubPostSerializer(serializers.ModelSerializer):
     recipes_count = serializers.SerializerMethodField()
     is_subscribed = serializers.CharField(default=True)
 
-    def validate(self, attrs):
-        return attrs
-
     def get_recipes(self, obj):
         queryset = Recipe.objects.filter(author=obj.id)
         serializer = RecipeSubSerializer(
@@ -85,10 +82,37 @@ class UserSubPostSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed',
-            'recipes',
-            'recipes_count'
+            'is_subscribed', 'recipes', 'recipes_count'
         )
+        read_only_fields = (
+            'email', 'id', 'username', 'first_name', 'last_name',
+            'is_subscribed', 'recipes', 'recipes_count'
+        )
+
+    def validate_self_subscription(self, user, author):
+        if user == author:
+            raise serializers.ValidationError(
+                'Нельзя подписаться/отписаться от самого себя!')
+
+    def save(self, user, author):
+        if Subscription.objects.filter(user=user,
+                                       author=author).exists():
+            raise serializers.ValidationError(
+                'Вы уже подписаны на этого автора')
+        Subscription.objects.create(
+            user=user,
+            author=author)
+        return self.to_representation(author)
+
+    def destroy(self, user, author):
+        subscription = Subscription.objects.filter(user=user,
+                                                   author=author)
+        if subscription.exists():
+            Subscription.objects.filter(user=user,
+                                        author=author).delete()
+        else:
+            raise serializers.ValidationError(
+                'Вы не подписаны на данного автора')
 
 
 class MeUserSerializer(UserSerializer):
@@ -257,10 +281,14 @@ class FavoriteSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
-    def save(self, **kwargs):
-        user = self.context['request'].user
-        recipe = Recipe.objects.get(id=kwargs['recipe'])
+    def save(self, user, **kwargs):
+        recipe = Recipe.objects.get(id=kwargs.get('id'))
         Favorite.objects.create(user=user, recipe=recipe)
+        return self.to_representation(recipe)
+
+    def destroy(self, user, **kwargs):
+        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        Favorite.objects.get(user=user, recipe=recipe).delete()
 
 
 class LoginSerializer(serializers.Serializer):
@@ -300,3 +328,13 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+
+    def save(self, user, **kwargs):
+        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        ShoppingCart.objects.create(user=user, recipe=recipe)
+        return self.to_representation(recipe)
+
+    def destroy(self, user, **kwargs):
+        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        ShoppingCart.objects.get(user=user, recipe=recipe).delete()

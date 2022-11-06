@@ -21,7 +21,8 @@ from .permissions import IsAuthenticatedOrOwnerOrAdmin
 from .serializers import (
     UserSerializer, MeUserSerializer, RecipeSerializer, UserSubSerializer,
     FavoriteSerializer, LoginSerializer, RecipeCreateSerializer, TagSerializer,
-    IngredientModelSerializer, SubscriptionSerializer, UserSubPostSerializer)
+    IngredientModelSerializer, SubscriptionSerializer, UserSubPostSerializer,
+    ShoppingCartSerializer)
 
 User = get_user_model()
 
@@ -86,19 +87,15 @@ class RecipeViewSet(ModelViewSet):
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
         try:
+            serializer = ShoppingCartSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = request.user
             if self.request.method == 'POST':
-                recipe_id = self.kwargs.get('id')
-                recipe = Recipe.objects.get(pk=recipe_id)
-                user = User.objects.get(username=self.request.user)
-                ShoppingCart.objects.create(user=user, recipe=recipe)
-                serializer = FavoriteSerializer(recipe)
-                return Response(serializer.data,
+                serializer_data = serializer.save(user=user, **kwargs)
+                return Response(serializer_data,
                                 status=status.HTTP_201_CREATED)
             # else only one available method DELETE
-            recipe_id = self.kwargs.get('id')
-            recipe = Recipe.objects.get(pk=recipe_id)
-            user = User.objects.get(username=self.request.user)
-            ShoppingCart.objects.get(user=user, recipe=recipe).delete()
+            serializer.destroy(user=user, **kwargs)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as error:
             return Response({'errors': str(error)},
@@ -108,19 +105,16 @@ class RecipeViewSet(ModelViewSet):
             url_name='favorites', permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
         try:
+            serializer = FavoriteSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = request.user
             if self.request.method == 'POST':
-                recipe_id = self.kwargs.get('id')
-                recipe = Recipe.objects.get(pk=recipe_id)
-                user = User.objects.get(username=self.request.user)
-                Favorite.objects.create(user=user, recipe=recipe)
-                serializer = FavoriteSerializer(recipe)
-                return Response(serializer.data,
+                serializer_data = serializer.save(user=user, **kwargs)
+
+                return Response(serializer_data,
                                 status=status.HTTP_201_CREATED)
             # else only one available method DELETE
-            recipe_id = self.kwargs.get('id')
-            recipe = Recipe.objects.get(pk=recipe_id)
-            user = User.objects.get(username=self.request.user)
-            Favorite.objects.get(user=user, recipe=recipe).delete()
+            serializer.destroy(user=user, **kwargs)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as error:
             return Response({'errors': str(error)},
@@ -227,28 +221,22 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(methods=['POST', 'DELETE'], detail=True, url_path='subscribe',
+    @action(methods=['POST', 'DELETE'],
+            detail=True,
+            url_path='subscribe',
             url_name='subscribes',
             serializer_class=UserSubSerializer,
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, *args, **kwargs):
-        try:
-            user_id = self.kwargs.get('id')
-            user = get_object_or_404(User, pk=user_id)
-            requester = self.request.user
-            if user == requester:
-                return Response(
-                    {'errors:': 'Нельзя подписаться на самого себя!'})
-            if self.request.method == 'POST':
-                serializer = UserSubPostSerializer(user)
-                Subscription.objects.create(
-                    user=self.request.user,
-                    author=user)
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
-            Subscription.objects.get(user=self.request.user,
-                                     author=user).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as error:
-            return Response({'errors': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)
+        author_id = self.kwargs.get('id')
+        author = get_object_or_404(User, pk=author_id)
+        user = self.request.user
+        serializer = UserSubPostSerializer(data=request.data)
+        serializer.validate_self_subscription(user, author)
+        serializer.is_valid(raise_exception=True)
+        if self.request.method == 'POST':
+            serializer_data = serializer.save(user, author)
+            return Response(serializer_data,
+                            status=status.HTTP_201_CREATED)
+        serializer.destroy(user, author)
+        return Response(status=status.HTTP_204_NO_CONTENT)
