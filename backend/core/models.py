@@ -76,6 +76,9 @@ class Recipe(models.Model):
     cooking_time = models.IntegerField('Cooking time')
     pub_date = models.DateTimeField('Publication date', auto_now_add=True)
 
+    class Meta:
+        ordering = ['-pub_date']
+
     def __str__(self):
         return self.name
 

@@ -17,5 +17,5 @@ router.register('users', DjoserCustomAndSubscriptionViewSet,
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/token/login/', LoginViewSet.as_view()),
-    # path('auth/token/logout/', LogoutViewSet.as_view()),
+    path('auth/token/logout/', LogoutViewSet.as_view()),
 ]

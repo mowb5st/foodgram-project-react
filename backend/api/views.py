@@ -86,39 +86,31 @@ class RecipeViewSet(ModelViewSet):
             url_path='shopping_cart', url_name='shopping_carts',
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
-        try:
-            serializer = ShoppingCartSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = request.user
-            if self.request.method == 'POST':
-                serializer_data = serializer.save(user=user, **kwargs)
-                return Response(serializer_data,
-                                status=status.HTTP_201_CREATED)
-            # else only one available method DELETE
-            serializer.destroy(user=user, **kwargs)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as error:
-            return Response({'errors': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = ShoppingCartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if self.request.method == 'POST':
+            serializer_data = serializer.save(user=user, **kwargs)
+            return Response(serializer_data,
+                            status=status.HTTP_201_CREATED)
+        # else only one available method DELETE
+        serializer.destroy(user=user, **kwargs)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['POST', 'DELETE'], detail=True, url_path='favorite',
             url_name='favorites', permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
-        try:
-            serializer = FavoriteSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = request.user
-            if self.request.method == 'POST':
-                serializer_data = serializer.save(user=user, **kwargs)
+        serializer = FavoriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if self.request.method == 'POST':
+            serializer_data = serializer.save(user=user, **kwargs)
 
-                return Response(serializer_data,
-                                status=status.HTTP_201_CREATED)
-            # else only one available method DELETE
-            serializer.destroy(user=user, **kwargs)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as error:
-            return Response({'errors': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer_data,
+                            status=status.HTTP_201_CREATED)
+        # else only one available method DELETE
+        serializer.destroy(user=user, **kwargs)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscriptionViewSet(mixins.ListModelMixin,

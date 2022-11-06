@@ -92,27 +92,20 @@ class UserSubPostSerializer(serializers.ModelSerializer):
     def validate_self_subscription(self, user, author):
         if user == author:
             raise serializers.ValidationError(
-                'Нельзя подписаться/отписаться от самого себя!')
+                'Нельзя подписаться/отписаться на самого себя!')
 
     def save(self, user, author):
-        if Subscription.objects.filter(user=user,
-                                       author=author).exists():
-            raise serializers.ValidationError(
-                'Вы уже подписаны на этого автора')
-        Subscription.objects.create(
-            user=user,
-            author=author)
-        return self.to_representation(author)
+        if not Subscription.objects.filter(user=user, author=author).exists():
+            Subscription.objects.create(user=user, author=author)
+            return self.to_representation(author)
+        raise serializers.ValidationError('Вы уже подписаны на этого автора')
 
     def destroy(self, user, author):
-        subscription = Subscription.objects.filter(user=user,
-                                                   author=author)
+        subscription = Subscription.objects.filter(user=user, author=author)
         if subscription.exists():
-            Subscription.objects.filter(user=user,
-                                        author=author).delete()
-        else:
-            raise serializers.ValidationError(
-                'Вы не подписаны на данного автора')
+            subscription.delete()
+            return
+        raise serializers.ValidationError('Вы не подписаны на данного автора')
 
 
 class MeUserSerializer(UserSerializer):
@@ -283,12 +276,19 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     def save(self, user, **kwargs):
         recipe = Recipe.objects.get(id=kwargs.get('id'))
-        Favorite.objects.create(user=user, recipe=recipe)
-        return self.to_representation(recipe)
+        favorited = Favorite.objects.filter(user=user, recipe=recipe)
+        if not favorited.exists():
+            Favorite.objects.create(user=user, recipe=recipe)
+            return self.to_representation(recipe)
+        raise serializers.ValidationError('Рецепт уже в избранном')
 
     def destroy(self, user, **kwargs):
         recipe = Recipe.objects.get(id=kwargs.get('id'))
-        Favorite.objects.get(user=user, recipe=recipe).delete()
+        favorited = Favorite.objects.filter(user=user, recipe=recipe)
+        if favorited.exists:
+            favorited.delete()
+            return
+        raise serializers.ValidationError('Рецепта нет в избранном')
 
 
 class LoginSerializer(serializers.Serializer):
@@ -332,9 +332,16 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     def save(self, user, **kwargs):
         recipe = Recipe.objects.get(id=kwargs.get('id'))
-        ShoppingCart.objects.create(user=user, recipe=recipe)
-        return self.to_representation(recipe)
+        shopping_cart = ShoppingCart.objects.filter(user=user, recipe=recipe)
+        if not shopping_cart.exists():
+            ShoppingCart.objects.create(user=user, recipe=recipe)
+            return self.to_representation(recipe)
+        raise serializers.ValidationError('Рецепт уже в списке покупок')
 
     def destroy(self, user, **kwargs):
         recipe = Recipe.objects.get(id=kwargs.get('id'))
-        ShoppingCart.objects.get(user=user, recipe=recipe).delete()
+        shopping_cart = ShoppingCart.objects.filter(user=user, recipe=recipe)
+        if shopping_cart.exists():
+            shopping_cart.delete()
+            return
+        raise serializers.ValidationError('Рецепта нет в списке покупок')
