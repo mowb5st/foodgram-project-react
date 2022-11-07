@@ -15,7 +15,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 from core.models import Ingredient, Recipe, Tag
 
 from .filters import RecipeFilter
-from .permissions import IsAuthenticatedOrOwnerOrAdmin
+from .permissions import IsAuthenticatedAndOwnerOrAdmin
 from .serializers import (
     FavoriteSerializer, IngredientModelSerializer, LoginSerializer,
     RecipeCreateSerializer, RecipeSerializer, ShoppingCartSerializer,
@@ -35,7 +35,7 @@ class RecipeViewSet(ModelViewSet):
         if self.request.method in SAFE_METHODS:
             permission_classes = [AllowAny]
         else:
-            permission_classes = [IsAuthenticatedOrOwnerOrAdmin]
+            permission_classes = [IsAuthenticatedAndOwnerOrAdmin]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):

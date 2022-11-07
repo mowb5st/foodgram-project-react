@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.utils.translation import gettext_lazy as __
+from django.utils.translation import gettext_lazy
+from djoser.serializers import UserCreateSerializer
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
 
@@ -42,17 +43,17 @@ class IngredientModelSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField(
-        label=__("email"),
+        label=gettext_lazy("email"),
         write_only=True
     )
     password = serializers.CharField(
-        label=__("Password"),
+        label=gettext_lazy("Password"),
         style={'input_type': 'password'},
         trim_whitespace=False,
         write_only=True
     )
     token = serializers.CharField(
-        label=__("Token"),
+        label=gettext_lazy("Token"),
         read_only=True
     )
 
@@ -64,10 +65,10 @@ class LoginSerializer(serializers.Serializer):
             user = authenticate(request=self.context.get('request'),
                                 username=username, password=password)
             if not user:
-                msg = __('Unable to log in with provided credentials.')
+                msg = gettext_lazy('Unable to log in with provided credentials.')
                 raise serializers.ValidationError(msg, code='authorization')
         else:
-            msg = __('Must include "email" and "password".')
+            msg = gettext_lazy('Must include "email" and "password".')
             raise serializers.ValidationError(msg, code='authorization')
         attrs['user'] = user
         return attrs
@@ -299,3 +300,13 @@ class UserSubSerializer(serializers.ModelSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed', 'recipes', 'recipes_count'
         )
+
+class UserSerializer(UserCreateSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name', 'password'
+        )
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }

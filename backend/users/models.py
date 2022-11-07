@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy
 
 ROLE_ADMIN = 'admin'
 ROLE_USER = 'user'
@@ -12,6 +13,7 @@ ROLES = (
 class User(AbstractUser):
     username = models.CharField(
         'Логин', max_length=150, unique=True)
+    password = models.CharField(gettext_lazy('password'), max_length=128)
     email = models.EmailField(
         'Почта', max_length=254, unique=True)
     role = models.CharField(

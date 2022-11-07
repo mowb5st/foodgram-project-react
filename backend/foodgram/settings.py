@@ -121,10 +121,10 @@ DJOSER = {
         'user_create': 'api.serializers.UserSerializer',
     },
     'PERMISSIONS': {
-        'activation': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
-        'set_password': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
-        'user_delete': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
-        # 'user': 'api.permissions.IsAuthenticatedOrOwnerOrAdmin',
+        'activation': 'api.permissions.IsAuthenticatedAndOwnerOrAdmin',
+        'set_password': 'api.permissions.IsAuthenticatedAndOwnerOrAdmin',
+        'user_delete': 'api.permissions.IsAuthenticatedAndOwnerOrAdmin',
+        # 'user': 'api.permissions.IsAuthenticatedAndOwnerOrAdmin',
     }
 }
 
