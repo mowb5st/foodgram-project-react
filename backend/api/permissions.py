@@ -5,6 +5,11 @@ class MyBasePermission(permissions.BasePermission):
     message = 'Вы не обладаете достаточными правами для данной операции!'
 
 
+class IsAuthenticatedCustom(MyBasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+
+
 class IsAuthenticatedAndOwnerOrAdmin(MyBasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated

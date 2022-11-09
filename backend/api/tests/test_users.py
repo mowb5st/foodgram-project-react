@@ -32,6 +32,13 @@ class CommonTestCase(TestCase):
         self.api_client.force_authenticate(user=self.user, token=self.token)
 
 
+class UserCreationTestCase(CommonTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = reverse('api:')
+
+
 class ReciepeViewTestCase(CommonTestCase):
     """Тест api рецептов."""
 

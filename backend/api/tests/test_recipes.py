@@ -1,117 +1,91 @@
-from django.db.models import Sum
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
-from rest_framework.response import Response
+#!-*-coding:utf-8-*-
+import base64
+import json
+import tempfile
 
-from core.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                         ShoppingCart, Tag)
+from django.test import Client, TestCase
+from django.urls import reverse
+from PIL import Image
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
 
-from ..serializers import (AddRecipeSerializer, IngredientSerializer,
-                           RecipeReadSerializer, ShortRecipeSerializer,
-                           TagSerializer)
-
-
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """Вьюсет для тегов"""
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    pagination_class = None
+from core.models import Ingredient, Recipe, Subscription, Tag
+from users.models import User
 
 
-class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """Вьюсет для ингредиентов"""
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
-    pagination_class = None
+class CommonTestCase(TestCase):
 
-    def get_queryset(self):
-        queryset = self.queryset
-        name = self.request.query_params.get('name')
-        if name is not None:
-            queryset = queryset.filter(name__startswith=name)
-        return queryset
-
-
-class RecipeViewSet(viewsets.ModelViewSet):
-    """Вьюсет для рецептов"""
-    queryset = Recipe.objects.all()
-    pagination_class = CustomPagination
-    permission_classes = (IsAdminAuthorOrReadOnlyPermission,)
-    filter_backends = (DjangoFilterBackend,)
-    filterset_class = RecipeFilter
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user,)
-
-    def get_serializer_class(self):
-        if self.request.method in SAFE_METHODS:
-            return RecipeReadSerializer
-        return AddRecipeSerializer
-
-    @action(
-        detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated]
-    )
-    def shopping_cart(self, request, pk):
-        if request.method == 'POST':
-            return self.add_recipe(ShoppingCart, request.user, pk)
-        return self.delete_recipe(ShoppingCart, request.user, pk)
-
-    @action(
-        detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated]
-    )
-    def favorite(self, request, pk):
-        if request.method == 'POST':
-            return self.add_recipe(Favorite, request.user, pk)
-        return self.delete_recipe(Favorite, request.user, pk)
-
-    def add_recipe(self, model, user, pk):
-        if model.objects.filter(user=user, recipe__id=pk).exists():
-            return Response('Этот рецпт уже есть',
-                            status=status.HTTP_400_BAD_REQUEST)
-        recipe = get_object_or_404(Recipe, id=pk)
-        model.objects.create(user=user, recipe=recipe)
-        serializer = ShortRecipeSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def delete_recipe(self, model, user, pk):
-        obj = model.objects.filter(user=user, recipe__id=pk)
-        if obj.exists():
-            obj.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response('Такого рецепта уже нет',
-                        status=status.HTTP_400_BAD_REQUEST)
-
-    @action(
-        detail=False,
-        methods=['GET'],
-        permission_classes=[IsAuthenticated],
-        url_path='download_shopping_cart',
-    )
-    def download_shopping_cart(self, request):
-        ingredient_list = 'Cписок покупок:'
-        ingredients = IngredientRecipe.objects.filter(
-            recipe__shopping_cart__user=request.user
-        ).values(
-            'ingredient__name', 'ingredient__measurement_unit'
-        ).annotate(amount_sum=Sum('amount'))
-        for num, i in enumerate(ingredients):
-            ingredient_list += (
-                f"\n{i['ingredient__name']} - "
-                f"{i['amount_sum']} {i['ingredient__measurement_unit']}"
-            )
-            if num < ingredients.count() - 1:
-                ingredient_list += ', '
-        file = 'shopping_list'
-        response = HttpResponse(
-            ingredient_list, 'Content-Type: application/pdf'
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(
+            username='admin',
+            password='admin',
+            first_name='egor',
+            last_name='letov',
         )
-        response['Content-Disposition'] = f'attachment; filename="{file}.pdf"'
-        return response
+        cls.api_client = APIClient()
+        cls.token = Token.objects.create(user=cls.user)
+
+    def setUp(self) -> None:
+        self.api_client.force_authenticate(user=self.user, token=self.token)
+
+
+class UserCreationTestCase(CommonTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = reverse('api:')
+
+
+class ReciepeViewTestCase(CommonTestCase):
+    """Тест api рецептов."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = reverse('api:recipes-list')
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.amount = 22
+        self.ing_salt = Ingredient.objects.create(
+            name='salt',
+            measurement_unit='g'
+        )
+        self.tag1 = Tag.objects.create(
+            name='tag1',
+            color='red',
+            slug='tag1',
+        )
+        self.tag2 = Tag.objects.create(
+            name='tag2',
+            color='blue',
+            slug='tag2',
+        )
+
+        self.tmp_file = tempfile.NamedTemporaryFile(suffix='.jpg')
+        image = Image.new('RGB', (100, 100))
+        image.save(self.tmp_file.name)
+
+        # self.api_client.force_authenticate(user=self.user, token=self.token)
+
+    def create_recipe(self, **kw):
+        data = {
+            'name': 'salat',
+            'text': 'text',
+            'cooking_time': 4,
+            'author': self.user,
+        }
+        data.update(kw)
+
+        recipe = Recipe.objects.create(**data)
+
+        recipe.tags.add(self.tag1)
+        recipe.ingredients.add(
+            self.ing_salt,
+            through_defaults={'amount': self.amount}
+        )
+        return recipe

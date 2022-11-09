@@ -15,7 +15,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 from core.models import Ingredient, Recipe, Tag
 
 from .filters import RecipeFilter
-from .permissions import IsAuthenticatedAndOwnerOrAdmin
+from .permissions import IsAuthenticatedAndOwnerOrAdmin, IsAuthenticatedCustom
 from .serializers import (
     FavoriteSerializer, IngredientModelSerializer, LoginSerializer,
     RecipeCreateSerializer, RecipeSerializer, ShoppingCartSerializer,
@@ -45,7 +45,8 @@ class RecipeViewSet(ModelViewSet):
 
     @action(methods=['GET'], detail=False, url_path='download_shopping_cart',
             url_name='download_shopping_cart',
-            permission_classes=[IsAuthenticated])
+            permission_classes=[IsAuthenticated]
+            )
     def download_shopping_cart(self, request, *args, **kwargs):
         if not self.request.user.is_authenticated:
             return Response(
@@ -117,7 +118,7 @@ class TagViewSet(mixins.RetrieveModelMixin,
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     lookup_field = 'id'
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class IngredientViewSet(mixins.RetrieveModelMixin,
