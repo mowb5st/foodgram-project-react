@@ -1,7 +1,8 @@
 import django_filters
 from django_filters import ModelMultipleChoiceFilter
 
-from core.models import Recipe, Tag
+from core.models import Recipe, Tag, Ingredient
+
 
 # from django_filters.rest_framework import FilterSet, NumberFilter, CharFilter, \
 #     BooleanFilter
@@ -34,23 +35,32 @@ class RecipeFilter(django_filters.FilterSet):
         label='Tags',
         to_field_name='slug'
     )
-    is_favorite = django_filters.BooleanFilter(method='get_favorite')
-    is_in_shopping_cart = django_filters.BooleanFilter(
+    is_favorite = django_filters.NumberFilter(method='get_favorite')
+    is_in_shopping_cart = django_filters.NumberFilter(
         method='get_is_in_shopping_cart')
 
     class Meta:
         model = Recipe
         fields = ('tags', 'author')
 
-    # filter for TRUE value, exclude for FALSE value
     def get_favorite(self, queryset, name, value):
         user = self.request.user
-        if value and not user.is_anonymous:
-            return queryset.filter(favorite_recipe__user=user)
-        return queryset.exclude(favorite_recipe__user=user)
+        if not user.is_anonymous:
+            if value == 1:
+                return queryset.filter(favorite_recipe__user=user)
+            return queryset.exclude(favorite_recipe__user=user)
 
     def get_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
-        if value and not user.is_anonymous:
-            return queryset.filter(shopping_recipe__user=user)
-        return queryset.exclude(shopping_recipe__user=user)
+        if not user.is_anonymous:
+            if value == 1:
+                return queryset.filter(shopping_recipe__user=user)
+            return queryset.exclude(shopping_recipe__user=user)
+
+
+class IngredientFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter()
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)

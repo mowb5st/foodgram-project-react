@@ -14,7 +14,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
 from core.models import Ingredient, Recipe, Tag
 
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .permissions import IsAuthenticatedAndOwnerOrAdmin, IsAuthenticatedCustom
 from .serializers import (
     FavoriteSerializer, IngredientModelSerializer, LoginSerializer,
@@ -48,38 +48,41 @@ class RecipeViewSet(ModelViewSet):
             permission_classes=[IsAuthenticated]
             )
     def download_shopping_cart(self, request, *args, **kwargs):
-        if not self.request.user.is_authenticated:
-            return Response(
-                {
-                    "detail": "Учетные данные не были предоставлены."
-                },
-                status=status.HTTP_401_UNAUTHORIZED)
-        try:
-            shopping_cart = {}
-            ingredients = Recipe.objects.filter(
-                shopping_recipe__user=request.user
-            ).values_list(
-                'ingredients__ingredient__name',
-                'ingredients__ingredient__measurement_unit'
-            ).annotate(amount=Sum('ingredients__amount'))
-            for name, measurement_unit, amount in ingredients:
-                if name not in shopping_cart:
-                    shopping_cart[name] = {
-                        'measurement_unit': measurement_unit,
-                        'amount': amount
-                    }
-            file_text = ([f"• {item} ({value['measurement_unit']}) — "
-                          f"{value['amount']}\n"
-                          for item, value in shopping_cart.items()])
-            response = HttpResponse(file_text, 'Content-Type: text/plain')
-            response['Content-Disposition'] = (
-                f'attachment; '
-                f'filename="{self.request.user.username} shopping cart.txt"'
-            )
-            return response
-        except Exception as error:
-            return Response({'errors': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)
+        # if not self.request.user.is_authenticated:
+        #     return Response(
+        #         {
+        #             "detail": "Учетные данные не были предоставлены."
+        #         },
+        #         status=status.HTTP_401_UNAUTHORIZED)
+
+        shopping_cart = {}
+        ingredients = Recipe.objects.filter(
+            shopping_recipe__user=request.user
+        ).values_list(
+            'ingredients__ingredient__name',
+            'ingredients__ingredient__measurement_unit'
+        ).annotate(amount=Sum('ingredients__amount'))
+        for name, measurement_unit, amount in ingredients:
+            if name not in shopping_cart:
+                shopping_cart[name] = {
+                    'measurement_unit': measurement_unit,
+                    'amount': amount
+                }
+            else:
+                current_amount = shopping_cart[name]['amount']
+                shopping_cart[name] = {
+                    'measurement_unit': measurement_unit,
+                    'amount': current_amount + amount
+                }
+        file_text = ([f"• {item} ({value['measurement_unit']}) — "
+                      f"{value['amount']}\n"
+                      for item, value in shopping_cart.items()])
+        response = HttpResponse(file_text, 'Content-Type: text/plain')
+        response['Content-Disposition'] = (
+            f'attachment; '
+            f'filename="{self.request.user.username} shopping cart.txt"'
+        )
+        return response
 
     @action(methods=['POST', 'DELETE'], detail=True,
             url_path='shopping_cart', url_name='shopping_carts',
@@ -119,6 +122,7 @@ class TagViewSet(mixins.RetrieveModelMixin,
     serializer_class = TagSerializer
     lookup_field = 'id'
     permission_classes = [AllowAny]
+    pagination_class = None
 
 
 class IngredientViewSet(mixins.RetrieveModelMixin,
@@ -127,15 +131,23 @@ class IngredientViewSet(mixins.RetrieveModelMixin,
     queryset = Ingredient.objects.all()
     serializer_class = IngredientModelSerializer
     lookup_field = 'id'
-    permission_classes = [IsAuthenticated]
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+    permission_classes = (AllowAny,)
+    pagination_class = None
 
 
 class DjoserCustomAndSubscriptionViewSet(UserViewSet):
 
     @action(methods=['GET'], detail=False,
             serializer_class=UserSubSerializer,
-            permission_classes=[IsAuthenticated])
+            permission_classes=[IsAuthenticated],
+            filter_backends=(DjangoFilterBackend,),
+            # filterset_class=RecipeFilter
+            )
     def subscriptions(self, request, *args, **kwargs):
+        # self.filter_backends = (DjangoFilterBackend,)
+        # self.filterset_class = RecipeFilter
         queryset = self.filter_queryset(
             User.objects.filter(following__user=self.request.user))
 
