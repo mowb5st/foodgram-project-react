@@ -138,6 +138,7 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
             serializer_class=UserSubSerializer,
             permission_classes=[IsAuthenticated],
             filter_backends=(DjangoFilterBackend,),
+            pagination_class=CustomPagination
             )
     def subscriptions(self, request, *args, **kwargs):
         queryset = self.filter_queryset(
