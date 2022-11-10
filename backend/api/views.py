@@ -15,6 +15,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 from core.models import Ingredient, Recipe, Tag
 
 from .filters import RecipeFilter, IngredientFilter
+from .paginators import CustomPagination
 from .permissions import IsAuthenticatedAndOwnerOrAdmin, IsAuthenticatedCustom
 from .serializers import (
     FavoriteSerializer, IngredientModelSerializer, LoginSerializer,
@@ -30,6 +31,7 @@ class RecipeViewSet(ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     lookup_field = 'id'
+    pagination_class = CustomPagination
 
     def get_permissions(self):
         if self.request.method in SAFE_METHODS:
@@ -39,7 +41,7 @@ class RecipeViewSet(ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
-        if self.action == ('list' or 'retrieve'):
+        if self.action == 'list' or 'retrieve':
             return RecipeSerializer
         return RecipeCreateSerializer
 
@@ -48,13 +50,6 @@ class RecipeViewSet(ModelViewSet):
             permission_classes=[IsAuthenticated]
             )
     def download_shopping_cart(self, request, *args, **kwargs):
-        # if not self.request.user.is_authenticated:
-        #     return Response(
-        #         {
-        #             "detail": "Учетные данные не были предоставлены."
-        #         },
-        #         status=status.HTTP_401_UNAUTHORIZED)
-
         shopping_cart = {}
         ingredients = Recipe.objects.filter(
             shopping_recipe__user=request.user
@@ -143,11 +138,8 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
             serializer_class=UserSubSerializer,
             permission_classes=[IsAuthenticated],
             filter_backends=(DjangoFilterBackend,),
-            # filterset_class=RecipeFilter
             )
     def subscriptions(self, request, *args, **kwargs):
-        # self.filter_backends = (DjangoFilterBackend,)
-        # self.filterset_class = RecipeFilter
         queryset = self.filter_queryset(
             User.objects.filter(following__user=self.request.user))
 
