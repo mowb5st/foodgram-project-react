@@ -1,6 +1,6 @@
 import django_filters
 
-from core.models import Recipe, Tag, Ingredient
+from core.models import Ingredient, Recipe, Tag
 
 
 class RecipeFilter(django_filters.FilterSet):

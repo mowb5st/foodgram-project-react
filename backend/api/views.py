@@ -14,14 +14,14 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
 from core.models import Ingredient, Recipe, Tag
 
-from .filters import RecipeFilter, IngredientFilter
+from .filters import IngredientFilter, RecipeFilter
 from .paginators import CustomPagination
 from .permissions import IsAuthenticatedAndOwnerOrAdmin, IsAuthenticatedCustom
-from .serializers import (
-    FavoriteSerializer, IngredientModelSerializer, LoginSerializer,
-    RecipeCreateSerializer, RecipeSerializer, ShoppingCartSerializer,
-    TagSerializer, UserSubPostSerializer, UserSubSerializer
-)
+from .serializers import (FavoriteSerializer, IngredientModelSerializer,
+                          LoginSerializer, RecipeCreateSerializer,
+                          RecipeSerializer, ShoppingCartSerializer,
+                          TagSerializer, UserSubPostSerializer,
+                          UserSubSerializer)
 
 User = get_user_model()
 
