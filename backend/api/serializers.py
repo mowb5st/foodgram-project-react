@@ -90,13 +90,26 @@ class Ingredient2RecipeCreateSerializer(serializers.ModelSerializer):
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
     ingredients = Ingredient2RecipeCreateSerializer(many=True)
-    image = Base64ImageField(use_url=True)
+    image = Base64ImageField(use_url=False)
 
     class Meta:
         model = Recipe
         fields = (
             'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time'
         )
+
+    def validate(self, attrs):
+        unique_ingredients = []
+        ingredients = attrs.get('ingredients')
+        for ingredient in ingredients:
+            ingredient_id = ingredient['id']
+            if ingredient_id not in unique_ingredients:
+                unique_ingredients.append(ingredient_id)
+            else:
+                raise serializers.ValidationError(
+                    f'Нельзя дублировать ингредиент: '
+                    f'({ingredient_id})')
+        return attrs
 
     def add_tags(self, tags, recipe):
         for tag in tags:
@@ -122,6 +135,18 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         self.add_tags(tags, recipe)
         self.add_ingredients(ingredients, recipe)
         return recipe
+
+    def update(self, instance, validated_data):
+        instance.ingredients.clear()
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        instance.name = validated_data.pop('name')
+        instance.text = validated_data.pop('text')
+        instance.cooking_time = validated_data.pop('cooking_time')
+        instance.save()
+        instance.tags.set(tags)
+        self.add_ingredients(ingredients, instance)
+        return instance
 
 
 class TagSerializer(serializers.ModelSerializer):
