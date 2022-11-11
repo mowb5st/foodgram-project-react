@@ -25,24 +25,6 @@ from .serializers import (FavoriteSerializer, IngredientModelSerializer,
 User = get_user_model()
 
 
-def favorite_shopping_cart_function(self, request, serializer_arg, *args,
-                                    **kwargs):
-    user = request.user
-    serializer = serializer_arg(data={
-        'user': user,
-        'method': self.request.method,
-        'kwargs': kwargs
-    })
-    serializer.is_valid(raise_exception=True)
-    if self.request.method == 'POST':
-        serializer_data = serializer.save(user=user, **kwargs)
-        return Response(serializer_data,
-                        status=status.HTTP_201_CREATED)
-    # else only one available method DELETE
-    serializer.destroy(user=user, **kwargs)
-    return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     filter_backends = (DjangoFilterBackend,)
@@ -60,9 +42,23 @@ class RecipeViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
             return RecipeSerializer
-        # if self.request.method == 'list' or 'retrieve':
-        #     return RecipeSerializer
         return RecipeCreateSerializer
+
+    def favorite_shopping_cart_function(self, request, serializer_arg, *args,
+                                        **kwargs):
+        user = request.user
+        serializer = serializer_arg(data={
+            'user': user,
+            'method': self.request.method,
+            'kwargs': kwargs
+        })
+        serializer.is_valid(raise_exception=True)
+        if self.request.method == 'POST':
+            serializer_data = serializer.save(user=user, **kwargs)
+            return Response(serializer_data,
+                            status=status.HTTP_201_CREATED)
+        serializer.destroy(user=user, **kwargs)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -89,12 +85,6 @@ class RecipeViewSet(ModelViewSet):
                     'measurement_unit': measurement_unit,
                     'amount': amount
                 }
-            # else:
-            #     current_amount = shopping_cart[name]['amount']
-            #     shopping_cart[name] = {
-            #         'measurement_unit': measurement_unit,
-            #         'amount': current_amount + amount
-            #     }
         file_text = ([f"• {item} ({value['measurement_unit']}) — "
                       f"{value['amount']}\n"
                       for item, value in shopping_cart.items()])
@@ -109,20 +99,22 @@ class RecipeViewSet(ModelViewSet):
             url_path='shopping_cart', url_name='shopping_carts',
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
-        return favorite_shopping_cart_function(self,
-                                               request,
-                                               ShoppingCartSerializer,
-                                               *args,
-                                               **kwargs)
+        return self.favorite_shopping_cart_function(
+            request,
+            ShoppingCartSerializer,
+            *args,
+            **kwargs
+        )
 
     @action(methods=['POST', 'DELETE'], detail=True, url_path='favorite',
             url_name='favorites', permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
-        return favorite_shopping_cart_function(self,
-                                               request,
-                                               FavoriteSerializer,
-                                               *args,
-                                               **kwargs)
+        return self.favorite_shopping_cart_function(
+            request,
+            FavoriteSerializer,
+            *args,
+            **kwargs
+        )
 
 
 class TagViewSet(mixins.RetrieveModelMixin,
