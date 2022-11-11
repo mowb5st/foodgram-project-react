@@ -198,14 +198,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
         return serializer.data
 
-    def get_ingredients(self, obj):
-        request = self.context['request']
-        serializer = IngredientSerializer(
-            obj.ingredients,
-            context={'request': request}
-        )
-        return serializer.data
-
     def get_is_favorite(self, obj):
         user = self.context.get('request').user
         if not user.is_authenticated:
@@ -265,17 +257,9 @@ class RecipeSubSerializer(serializers.ModelSerializer):
 
 
 class UserSubPostSerializer(serializers.ModelSerializer):
-    recipes = serializers.SerializerMethodField()
+    recipes = RecipeSubSerializer(many=True)
     recipes_count = serializers.SerializerMethodField()
     is_subscribed = serializers.CharField(default=True)
-
-    def get_recipes(self, obj):
-        queryset = Recipe.objects.filter(author=obj.id)
-        serializer = RecipeSubSerializer(
-            instance=queryset,
-            many=True,
-        )
-        return serializer.data
 
     def get_recipes_count(self, obj):
         queryset = Recipe.objects.filter(author=obj.id).count()
@@ -326,7 +310,7 @@ class UserSubPostSerializer(serializers.ModelSerializer):
 
 
 class UserSubSerializer(serializers.ModelSerializer):
-    recipes = serializers.SerializerMethodField()
+    recipes = RecipeSubSerializer(many=True)
     recipes_count = serializers.SerializerMethodField()
     is_subscribed = serializers.SerializerMethodField()
 
@@ -335,14 +319,6 @@ class UserSubSerializer(serializers.ModelSerializer):
         if not user.is_authenticated:
             return False
         return Subscription.objects.filter(user=user, author=obj).exists()
-
-    def get_recipes(self, obj):
-        queryset = Recipe.objects.filter(author=obj.id)
-        serializer = RecipeSubSerializer(
-            instance=queryset,
-            many=True,
-        )
-        return serializer.data
 
     def get_recipes_count(self, obj):
         queryset = Recipe.objects.filter(author=obj.id).count()

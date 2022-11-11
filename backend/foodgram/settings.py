@@ -1,9 +1,8 @@
 import os
-from datetime import timedelta
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = '_@k&86_(h47&z=g)jidw3ux7$!=#t+p!#$rj5-!$@4%#&*0v9u'
+SECRET_KEY = os.getenv('SECRET_KEY', default='fdpr17')
 
 DEBUG = True
 
@@ -92,7 +91,7 @@ AUTH_USER_MODEL = 'users.User'
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
-# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
