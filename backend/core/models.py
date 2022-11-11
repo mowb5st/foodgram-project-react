@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 
 User = get_user_model()
@@ -20,13 +21,20 @@ class Ingredient(models.Model):
 
 
 class IngredientRecipe(models.Model):
-    # модель рецепта связывается с этой моделью, а эта модель связывается с
-    # ингредиетом
     ingredient = models.ForeignKey(Ingredient,
                                    on_delete=models.CASCADE,
                                    verbose_name="Recipe's ingredient",
                                    related_name='recipe_ingredients')
-    amount = models.IntegerField("Amount of ingredients", blank=False)
+    amount = models.IntegerField("Amount of ingredients",
+                                 validators=[MinValueValidator(1)],
+                                 blank=False)
+
+    class Meta:
+        db_table = 'ingredientrecipes'
+        constraints = [
+            models.UniqueConstraint(fields=['ingredient', 'amount'],
+                                    name='unique_ingredient_recipe')
+        ]
 
     def __str__(self):
         return f'{self.ingredient}, {self.amount}'
@@ -71,7 +79,8 @@ class Recipe(models.Model):
         Tag,
         related_name='tags',
     )
-    cooking_time = models.IntegerField('Cooking time')
+    cooking_time = models.IntegerField('Cooking time',
+                                       validators=[MinValueValidator(1)])
     pub_date = models.DateTimeField('Publication date', auto_now_add=True)
 
     class Meta:
@@ -98,7 +107,7 @@ class Subscription(models.Model):
     )
 
     class Meta:
-        db_table = 'subsription'
+        db_table = 'subscriptions'
         constraints = [
             models.UniqueConstraint(fields=['user', 'author'],
                                     name='unique_following')

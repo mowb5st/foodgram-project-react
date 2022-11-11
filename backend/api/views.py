@@ -11,7 +11,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
-
 from core.models import Ingredient, Recipe, Tag
 
 from .filters import IngredientFilter, RecipeFilter
@@ -24,6 +23,23 @@ from .serializers import (FavoriteSerializer, IngredientModelSerializer,
                           UserSubSerializer)
 
 User = get_user_model()
+
+
+def favorite_shopping_cart_functions(self, request, serializer, *args, **kwargs):
+    user = request.user
+    serializer = serializer(data={
+        'user': user,
+        'method': self.request.method,
+        'kwargs': kwargs
+    })
+    serializer.is_valid(raise_exception=True)
+    if self.request.method == 'POST':
+        serializer_data = serializer.save(user=user, **kwargs)
+        return Response(serializer_data,
+                        status=status.HTTP_201_CREATED)
+    # else only one available method DELETE
+    serializer.destroy(user=user, **kwargs)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RecipeViewSet(ModelViewSet):
@@ -63,12 +79,12 @@ class RecipeViewSet(ModelViewSet):
                     'measurement_unit': measurement_unit,
                     'amount': amount
                 }
-            else:
-                current_amount = shopping_cart[name]['amount']
-                shopping_cart[name] = {
-                    'measurement_unit': measurement_unit,
-                    'amount': current_amount + amount
-                }
+            # else:
+            #     current_amount = shopping_cart[name]['amount']
+            #     shopping_cart[name] = {
+            #         'measurement_unit': measurement_unit,
+            #         'amount': current_amount + amount
+            #     }
         file_text = ([f"• {item} ({value['measurement_unit']}) — "
                       f"{value['amount']}\n"
                       for item, value in shopping_cart.items()])
@@ -83,9 +99,13 @@ class RecipeViewSet(ModelViewSet):
             url_path='shopping_cart', url_name='shopping_carts',
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
-        serializer = ShoppingCartSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         user = request.user
+        serializer = ShoppingCartSerializer(data={
+            'user': user,
+            'method': self.request.method,
+            'kwargs': kwargs
+        })
+        serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
             serializer_data = serializer.save(user=user, **kwargs)
             return Response(serializer_data,
@@ -97,12 +117,15 @@ class RecipeViewSet(ModelViewSet):
     @action(methods=['POST', 'DELETE'], detail=True, url_path='favorite',
             url_name='favorites', permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
-        serializer = FavoriteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         user = request.user
+        serializer = FavoriteSerializer(data={
+            'user': user,
+            'method': self.request.method,
+            'kwargs': kwargs
+        })
+        serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
             serializer_data = serializer.save(user=user, **kwargs)
-
             return Response(serializer_data,
                             status=status.HTTP_201_CREATED)
         # else only one available method DELETE
@@ -162,8 +185,11 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
         author_id = self.kwargs.get('id')
         author = get_object_or_404(User, pk=author_id)
         user = self.request.user
-        serializer = UserSubPostSerializer(data=request.data)
-        serializer.validate_self_subscription(user, author)
+        serializer = UserSubPostSerializer(data={
+            'user': user,
+            'author': author,
+            'method': self.request.method
+        })
         serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
             serializer_data = serializer.save(user, author)

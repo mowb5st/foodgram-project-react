@@ -1,16 +1,16 @@
 from rest_framework import permissions
 
 
-class MyBasePermission(permissions.BasePermission):
+class CustomBasePermission(permissions.BasePermission):
     message = 'Вы не обладаете достаточными правами для данной операции!'
 
 
-class IsAuthenticatedCustom(MyBasePermission):
+class IsAuthenticatedCustom(CustomBasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated
 
 
-class IsAuthenticatedAndOwnerOrAdmin(MyBasePermission):
+class IsAuthenticatedAndOwnerOrAdmin(CustomBasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated
 

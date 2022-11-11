@@ -16,21 +16,28 @@ class FavoriteSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
-    def save(self, user, **kwargs):
+    def validate(self, attrs):
+        initial_data = self.initial_data
+        user = initial_data.get('user')
+        kwargs = initial_data.get('kwargs')
         recipe = Recipe.objects.get(id=kwargs.get('id'))
         favorited = Favorite.objects.filter(user=user, recipe=recipe)
-        if not favorited.exists():
-            Favorite.objects.create(user=user, recipe=recipe)
-            return self.to_representation(recipe)
-        raise serializers.ValidationError('Рецепт уже в избранном')
+        if initial_data.get('method') == 'POST':
+            if favorited.exists():
+                raise serializers.ValidationError('Рецепт уже в избранном')
+        else:
+            if not favorited.exists():
+                raise serializers.ValidationError('Рецепта нет в избранном')
+        return attrs
+
+    def save(self, user, **kwargs):
+        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        Favorite.objects.create(user=user, recipe=recipe)
+        return self.to_representation(recipe)
 
     def destroy(self, user, **kwargs):
         recipe = Recipe.objects.get(id=kwargs.get('id'))
-        favorited = Favorite.objects.filter(user=user, recipe=recipe)
-        if favorited.exists:
-            favorited.delete()
-            return
-        raise serializers.ValidationError('Рецепта нет в избранном')
+        Favorite.objects.filter(user=user, recipe=recipe).delete()
 
 
 class IngredientModelSerializer(serializers.ModelSerializer):
@@ -63,7 +70,8 @@ class LoginSerializer(serializers.Serializer):
             user = authenticate(request=self.context.get('request'),
                                 username=username, password=password)
             if not user:
-                msg = gettext_lazy('Unable to log in with provided credentials.')
+                msg = gettext_lazy(
+                    'Unable to log in with provided credentials.')
                 raise serializers.ValidationError(msg, code='authorization')
         else:
             msg = gettext_lazy('Must include "email" and "password".')
@@ -199,21 +207,30 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = ('id', 'name', 'image', 'cooking_time')
 
-    def save(self, user, **kwargs):
+    def validate(self, attrs):
+        initial_data = self.initial_data
+        user = initial_data.get('user')
+        kwargs = initial_data.get('kwargs')
         recipe = Recipe.objects.get(id=kwargs.get('id'))
         shopping_cart = ShoppingCart.objects.filter(user=user, recipe=recipe)
-        if not shopping_cart.exists():
-            ShoppingCart.objects.create(user=user, recipe=recipe)
-            return self.to_representation(recipe)
-        raise serializers.ValidationError('Рецепт уже в списке покупок')
+        if initial_data.get('method') == 'POST':
+            if shopping_cart.exists():
+                raise serializers.ValidationError(
+                    'Рецепт уже в списке покупок')
+        else:
+            if not shopping_cart.exists():
+                raise serializers.ValidationError(
+                    'Рецепта нет в списке покупок')
+        return attrs
+
+    def save(self, user, **kwargs):
+        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        ShoppingCart.objects.create(user=user, recipe=recipe)
+        return self.to_representation(recipe)
 
     def destroy(self, user, **kwargs):
         recipe = Recipe.objects.get(id=kwargs.get('id'))
-        shopping_cart = ShoppingCart.objects.filter(user=user, recipe=recipe)
-        if shopping_cart.exists():
-            shopping_cart.delete()
-            return
-        raise serializers.ValidationError('Рецепта нет в списке покупок')
+        ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
 
 
 class RecipeSubSerializer(serializers.ModelSerializer):
@@ -255,18 +272,32 @@ class UserSubPostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Нельзя подписаться/отписаться на самого себя!')
 
+    def validate(self, attrs):
+        initial_data = self.initial_data
+        user = initial_data.get('user')
+        author = initial_data.get('author')
+        if user == author:
+            raise serializers.ValidationError(
+                'Нельзя подписаться/отписаться на самого себя!')
+
+        subscription = Subscription.objects.filter(user=user,
+                                                   author=author)
+        if initial_data.get('method') == 'POST':
+            if subscription.exists():
+                raise serializers.ValidationError(
+                    'Вы уже подписаны на этого автора')
+        else:
+            if not subscription.exists():
+                raise serializers.ValidationError(
+                    'Вы не подписаны на данного автора')
+        return attrs
+
     def save(self, user, author):
-        if not Subscription.objects.filter(user=user, author=author).exists():
-            Subscription.objects.create(user=user, author=author)
-            return self.to_representation(author)
-        raise serializers.ValidationError('Вы уже подписаны на этого автора')
+        Subscription.objects.create(user=user, author=author)
+        return self.to_representation(author)
 
     def destroy(self, user, author):
-        subscription = Subscription.objects.filter(user=user, author=author)
-        if subscription.exists():
-            subscription.delete()
-            return
-        raise serializers.ValidationError('Вы не подписаны на данного автора')
+        Subscription.objects.filter(user=user, author=author).delete()
 
 
 class UserSubSerializer(serializers.ModelSerializer):
@@ -298,6 +329,7 @@ class UserSubSerializer(serializers.ModelSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed', 'recipes', 'recipes_count'
         )
+
 
 class UserSerializer(UserCreateSerializer):
     class Meta:
