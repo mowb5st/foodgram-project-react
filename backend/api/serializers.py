@@ -140,10 +140,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         instance.ingredients.clear()
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
-        instance.name = validated_data.pop('name')
-        instance.text = validated_data.pop('text')
-        instance.cooking_time = validated_data.pop('cooking_time')
-        instance.save()
+        super().update(instance, validated_data)
         instance.tags.set(tags)
         self.add_ingredients(ingredients, instance)
         return instance
@@ -257,7 +254,7 @@ class RecipeSubSerializer(serializers.ModelSerializer):
 
 
 class UserSubPostSerializer(serializers.ModelSerializer):
-    recipes = RecipeSubSerializer(many=True)
+    recipes = RecipeSubSerializer(many=True, read_only=True)
     recipes_count = serializers.SerializerMethodField()
     is_subscribed = serializers.CharField(default=True)
 
@@ -276,12 +273,10 @@ class UserSubPostSerializer(serializers.ModelSerializer):
             'is_subscribed', 'recipes', 'recipes_count'
         )
 
-    def validate_self_subscription(self, user, author):
-        if user == author:
-            raise serializers.ValidationError(
-                'Нельзя подписаться/отписаться на самого себя!')
-
     def validate(self, attrs):
+        # В attr содержится информация только из поля is_subscribed:
+        # OrderedDict([('is_subscribed', True)])
+        # По этому данные вытаскиваю из self.initial_data
         initial_data = self.initial_data
         user = initial_data.get('user')
         author = initial_data.get('author')

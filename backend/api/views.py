@@ -11,11 +11,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
-from core.models import Ingredient, Recipe, Tag
 
+from core.models import Ingredient, Recipe, Tag
 from .filters import IngredientFilter, RecipeFilter
 from .paginators import CustomPagination
-from .permissions import IsAuthenticatedAndOwnerOrAdmin, IsAuthenticatedCustom
+from .permissions import IsAuthenticatedAndOwnerOrAdmin
 from .serializers import (FavoriteSerializer, IngredientModelSerializer,
                           LoginSerializer, RecipeCreateSerializer,
                           RecipeSerializer, ShoppingCartSerializer,
@@ -172,7 +172,8 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
         serializer = UserSubPostSerializer(data={
             'user': user,
             'author': author,
-            'method': self.request.method
+            'method': self.request.method,
+            'kwargs': kwargs
         })
         serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
