@@ -255,7 +255,7 @@ class RecipeSubSerializer(serializers.ModelSerializer):
 
 class UserSubPostSerializer(serializers.ModelSerializer):
     recipes = RecipeSubSerializer(many=True, read_only=True)
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.CharField(default=True)
 
     def get_recipes_count(self, obj):
@@ -273,20 +273,20 @@ class UserSubPostSerializer(serializers.ModelSerializer):
             'is_subscribed', 'recipes', 'recipes_count'
         )
 
+    def to_internal_value(self, data):
+        super().to_internal_value(data)
+        return data
+
     def validate(self, attrs):
-        # В attr содержится информация только из поля is_subscribed:
-        # OrderedDict([('is_subscribed', True)])
-        # По этому данные вытаскиваю из self.initial_data
-        initial_data = self.initial_data
-        user = initial_data.get('user')
-        author = initial_data.get('author')
+        user = attrs.get('user')
+        author = attrs.get('author')
         if user == author:
             raise serializers.ValidationError(
                 'Нельзя подписаться/отписаться на самого себя!')
 
         subscription = Subscription.objects.filter(user=user,
                                                    author=author)
-        if initial_data.get('method') == 'POST':
+        if attrs.get('method') == 'POST':
             if subscription.exists():
                 raise serializers.ValidationError(
                     'Вы уже подписаны на этого автора')
@@ -296,11 +296,18 @@ class UserSubPostSerializer(serializers.ModelSerializer):
                     'Вы не подписаны на данного автора')
         return attrs
 
-    def save(self, user, author):
+    def user_author_determiner(self):
+        user = self.validated_data.get('user')
+        author = self.validated_data.get('author')
+        return user, author
+
+    def save(self):
+        user, author = self.user_author_determiner()
         Subscription.objects.create(user=user, author=author)
         return self.to_representation(author)
 
-    def destroy(self, user, author):
+    def destroy(self):
+        user, author = self.user_author_determiner()
         Subscription.objects.filter(user=user, author=author).delete()
 
 

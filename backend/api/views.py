@@ -163,24 +163,26 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
             detail=True,
             url_path='subscribe',
             url_name='subscribes',
-            serializer_class=UserSubSerializer,
+            serializer_class=UserSubPostSerializer,
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, *args, **kwargs):
         author_id = self.kwargs.get('id')
         author = get_object_or_404(User, pk=author_id)
         user = self.request.user
-        serializer = UserSubPostSerializer(data={
-            'user': user,
-            'author': author,
-            'method': self.request.method,
-            'kwargs': kwargs
-        })
+        serializer = self.get_serializer(
+            data={
+                'user': user,
+                'author': author,
+                'method': self.request.method,
+                'kwargs': kwargs
+            }
+        )
         serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
-            serializer_data = serializer.save(user, author)
+            serializer_data = serializer.save()
             return Response(serializer_data,
                             status=status.HTTP_201_CREATED)
-        serializer.destroy(user, author)
+        serializer.destroy()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
