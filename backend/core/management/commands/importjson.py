@@ -1,9 +1,9 @@
 import json
 import os.path
 
+from core.models import Ingredient
 from django.core.management.base import BaseCommand
 
-from core.models import Ingredient
 from foodgram.settings import BASE_DIR
 
 FOODGRAM_PUB_DIR = os.path.abspath(os.path.join(BASE_DIR, os.pardir))

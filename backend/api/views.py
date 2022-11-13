@@ -1,3 +1,4 @@
+from core.models import Ingredient, Recipe, Tag
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
@@ -11,15 +12,20 @@ from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, mixins
 
-from core.models import Ingredient, Recipe, Tag
 from .filters import IngredientFilter, RecipeFilter
 from .paginators import CustomPagination
 from .permissions import IsAuthenticatedAndOwnerOrAdmin
-from .serializers import (FavoriteSerializer, IngredientModelSerializer,
-                          LoginSerializer, RecipeCreateSerializer,
-                          RecipeSerializer, ShoppingCartSerializer,
-                          TagSerializer, SubscriptionEventSerializer,
-                          SubscriptionSerializer)
+from .serializers import (
+    FavoriteSerializer,
+    IngredientModelSerializer,
+    LoginSerializer,
+    RecipeCreateSerializer,
+    RecipeSerializer,
+    ShoppingCartSerializer,
+    SubscriptionEventSerializer,
+    SubscriptionSerializer,
+    TagSerializer
+)
 
 User = get_user_model()
 

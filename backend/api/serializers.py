@@ -1,11 +1,17 @@
+from core.models import (
+    Favorite,
+    Ingredient,
+    IngredientRecipe,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag
+)
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.translation import gettext_lazy
 from djoser.serializers import UserCreateSerializer
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
-
-from core.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                         ShoppingCart, Subscription, Tag)
 
 User = get_user_model()
 
