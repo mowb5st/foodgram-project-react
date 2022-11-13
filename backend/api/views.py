@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenDestroyView, UserViewSet
 from rest_framework import status
@@ -19,8 +18,8 @@ from .permissions import IsAuthenticatedAndOwnerOrAdmin
 from .serializers import (FavoriteSerializer, IngredientModelSerializer,
                           LoginSerializer, RecipeCreateSerializer,
                           RecipeSerializer, ShoppingCartSerializer,
-                          TagSerializer, UserSubPostSerializer,
-                          UserSubSerializer)
+                          TagSerializer, SubscriptionEventSerializer,
+                          SubscriptionSerializer)
 
 User = get_user_model()
 
@@ -67,7 +66,9 @@ class RecipeViewSet(ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
 
-    @action(methods=['GET'], detail=False, url_path='download_shopping_cart',
+    @action(methods=['GET'],
+            detail=False,
+            url_path='download_shopping_cart',
             url_name='download_shopping_cart',
             permission_classes=[IsAuthenticated]
             )
@@ -95,8 +96,10 @@ class RecipeViewSet(ModelViewSet):
         )
         return response
 
-    @action(methods=['POST', 'DELETE'], detail=True,
-            url_path='shopping_cart', url_name='shopping_carts',
+    @action(methods=['POST', 'DELETE'],
+            detail=True,
+            url_path='shopping_cart',
+            url_name='shopping_carts',
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
         return self.favorite_shopping_cart_function(
@@ -106,8 +109,11 @@ class RecipeViewSet(ModelViewSet):
             **kwargs
         )
 
-    @action(methods=['POST', 'DELETE'], detail=True, url_path='favorite',
-            url_name='favorites', permission_classes=[IsAuthenticated])
+    @action(methods=['POST', 'DELETE'],
+            detail=True,
+            url_path='favorite',
+            url_name='favorites',
+            permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
         return self.favorite_shopping_cart_function(
             request,
@@ -139,10 +145,11 @@ class IngredientViewSet(mixins.RetrieveModelMixin,
     pagination_class = None
 
 
-class DjoserCustomAndSubscriptionViewSet(UserViewSet):
+class SubscriptionViewSet(UserViewSet):
 
-    @action(methods=['GET'], detail=False,
-            serializer_class=UserSubSerializer,
+    @action(methods=['GET'],
+            detail=False,
+            serializer_class=SubscriptionSerializer,
             permission_classes=[IsAuthenticated],
             filter_backends=(DjangoFilterBackend,),
             pagination_class=CustomPagination
@@ -163,24 +170,20 @@ class DjoserCustomAndSubscriptionViewSet(UserViewSet):
             detail=True,
             url_path='subscribe',
             url_name='subscribes',
-            serializer_class=UserSubPostSerializer,
+            serializer_class=SubscriptionEventSerializer,
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, *args, **kwargs):
-        author_id = self.kwargs.get('id')
-        author = get_object_or_404(User, pk=author_id)
-        user = self.request.user
         serializer = self.get_serializer(
-            data={
-                'user': user,
-                'author': author,
-                'method': self.request.method,
-                'kwargs': kwargs
-            }
+            data={'user': self.request.user.id,
+                  'author': self.kwargs.get('id')},
+            context={
+                'request': request,
+                'kwargs': kwargs}
         )
         serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
-            serializer_data = serializer.save()
-            return Response(serializer_data,
+            serializer_saved_data = serializer.save()
+            return Response(serializer_saved_data,
                             status=status.HTTP_201_CREATED)
         serializer.destroy()
         return Response(status=status.HTTP_204_NO_CONTENT)

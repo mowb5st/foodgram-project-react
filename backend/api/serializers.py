@@ -253,29 +253,12 @@ class RecipeSubSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class UserSubPostSerializer(serializers.ModelSerializer):
-    recipes = RecipeSubSerializer(many=True, read_only=True)
-    recipes_count = serializers.SerializerMethodField(read_only=True)
-    is_subscribed = serializers.CharField(default=True)
-
-    def get_recipes_count(self, obj):
-        queryset = Recipe.objects.filter(author=obj.id).count()
-        return queryset
-
+class SubscriptionEventSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = Subscription
         fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed', 'recipes', 'recipes_count'
+            'user', 'author'
         )
-        read_only_fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed', 'recipes', 'recipes_count'
-        )
-
-    def to_internal_value(self, data):
-        super().to_internal_value(data)
-        return data
 
     def validate(self, attrs):
         user = attrs.get('user')
@@ -286,7 +269,7 @@ class UserSubPostSerializer(serializers.ModelSerializer):
 
         subscription = Subscription.objects.filter(user=user,
                                                    author=author)
-        if attrs.get('method') == 'POST':
+        if self.context.get('request').method == 'POST':
             if subscription.exists():
                 raise serializers.ValidationError(
                     'Вы уже подписаны на этого автора')
@@ -310,8 +293,14 @@ class UserSubPostSerializer(serializers.ModelSerializer):
         user, author = self.user_author_determiner()
         Subscription.objects.filter(user=user, author=author).delete()
 
+    def to_representation(self, instance):
+        return SubscriptionSerializer(
+            instance,
+            context={'request': self.context.get('request')}
+        ).data
 
-class UserSubSerializer(serializers.ModelSerializer):
+
+class SubscriptionSerializer(serializers.ModelSerializer):
     recipes = RecipeSubSerializer(many=True)
     recipes_count = serializers.SerializerMethodField()
     is_subscribed = serializers.SerializerMethodField()
