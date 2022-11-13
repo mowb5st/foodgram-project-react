@@ -64,6 +64,8 @@ jobs:
             key: ${{ secrets.SSH_KEY }}
             passphrase: ${{ secrets.PASSPHRASE }}
             script: |
+              sudo docker pull mowb/django:latest
+              sudo docker pull mowb/frontend:latest
               sudo docker-compose stop
               sudo docker-compose rm web
               touch .env
