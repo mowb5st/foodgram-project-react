@@ -46,17 +46,22 @@ class RecipeViewSet(ModelViewSet):
     def favorite_shopping_cart_function(self, request, serializer_arg, *args,
                                         **kwargs):
         user = request.user
-        serializer = serializer_arg(data={
-            'user': user,
-            'method': self.request.method,
-            'kwargs': kwargs
-        })
+        serializer = serializer_arg(
+            data={
+                'user': user.id,
+                'recipe': self.kwargs.get('id')
+            },
+            context={
+                'request': request,
+                'kwargs': kwargs
+            }
+        )
         serializer.is_valid(raise_exception=True)
         if self.request.method == 'POST':
-            serializer_data = serializer.save(user=user, **kwargs)
-            return Response(serializer_data,
+            serializer_saved_data = serializer.save()
+            return Response(serializer_saved_data,
                             status=status.HTTP_201_CREATED)
-        serializer.destroy(user=user, **kwargs)
+        serializer.destroy()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def update(self, request, *args, **kwargs):
@@ -103,11 +108,7 @@ class RecipeViewSet(ModelViewSet):
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, *args, **kwargs):
         return self.favorite_shopping_cart_function(
-            request,
-            ShoppingCartSerializer,
-            *args,
-            **kwargs
-        )
+            request, ShoppingCartSerializer, *args, **kwargs)
 
     @action(methods=['POST', 'DELETE'],
             detail=True,
@@ -116,11 +117,7 @@ class RecipeViewSet(ModelViewSet):
             permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
         return self.favorite_shopping_cart_function(
-            request,
-            FavoriteSerializer,
-            *args,
-            **kwargs
-        )
+            request, FavoriteSerializer, *args, **kwargs)
 
 
 class TagViewSet(mixins.RetrieveModelMixin,

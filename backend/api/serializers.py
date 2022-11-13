@@ -12,17 +12,14 @@ User = get_user_model()
 
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+        model = Favorite
+        fields = ('user', 'recipe')
 
     def validate(self, attrs):
-        initial_data = self.initial_data
-        user = initial_data.get('user')
-        kwargs = initial_data.get('kwargs')
-        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        user = attrs.get('user')
+        recipe = attrs.get('recipe')
         favorited = Favorite.objects.filter(user=user, recipe=recipe)
-        if initial_data.get('method') == 'POST':
+        if self.context.get('request').method == 'POST':
             if favorited.exists():
                 raise serializers.ValidationError('Рецепт уже в избранном')
         else:
@@ -30,14 +27,22 @@ class FavoriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('Рецепта нет в избранном')
         return attrs
 
-    def save(self, user, **kwargs):
-        recipe = Recipe.objects.get(id=kwargs.get('id'))
+    def user_recipe_determiner(self):
+        user = self.validated_data.get('user')
+        author = self.validated_data.get('recipe')
+        return user, author
+
+    def save(self):
+        user, recipe = self.user_recipe_determiner()
         Favorite.objects.create(user=user, recipe=recipe)
         return self.to_representation(recipe)
 
-    def destroy(self, user, **kwargs):
-        recipe = Recipe.objects.get(id=kwargs.get('id'))
+    def destroy(self):
+        user, recipe = self.user_recipe_determiner()
         Favorite.objects.filter(user=user, recipe=recipe).delete()
+
+    def to_representation(self, instance):
+        return RecipeSubSerializer(instance).data
 
 
 class IngredientModelSerializer(serializers.ModelSerializer):
@@ -217,17 +222,14 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+        model = ShoppingCart
+        fields = ('user', 'recipe')
 
     def validate(self, attrs):
-        initial_data = self.initial_data
-        user = initial_data.get('user')
-        kwargs = initial_data.get('kwargs')
-        recipe = Recipe.objects.get(id=kwargs.get('id'))
+        user = attrs.get('user')
+        recipe = attrs.get('recipe')
         shopping_cart = ShoppingCart.objects.filter(user=user, recipe=recipe)
-        if initial_data.get('method') == 'POST':
+        if self.context.get('request').method == 'POST':
             if shopping_cart.exists():
                 raise serializers.ValidationError(
                     'Рецепт уже в списке покупок')
@@ -237,14 +239,22 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
                     'Рецепта нет в списке покупок')
         return attrs
 
-    def save(self, user, **kwargs):
-        recipe = Recipe.objects.get(id=kwargs.get('id'))
+    def user_recipe_determiner(self):
+        user = self.validated_data.get('user')
+        author = self.validated_data.get('recipe')
+        return user, author
+
+    def save(self):
+        user, recipe = self.user_recipe_determiner()
         ShoppingCart.objects.create(user=user, recipe=recipe)
         return self.to_representation(recipe)
 
-    def destroy(self, user, **kwargs):
-        recipe = Recipe.objects.get(id=kwargs.get('id'))
+    def destroy(self):
+        user, recipe = self.user_recipe_determiner()
         ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
+
+    def to_representation(self, instance):
+        return RecipeSubSerializer(instance).data
 
 
 class RecipeSubSerializer(serializers.ModelSerializer):
@@ -256,9 +266,7 @@ class RecipeSubSerializer(serializers.ModelSerializer):
 class SubscriptionEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
-        fields = (
-            'user', 'author'
-        )
+        fields = ('user', 'author')
 
     def validate(self, attrs):
         user = attrs.get('user')
