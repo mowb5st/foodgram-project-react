@@ -43,7 +43,7 @@ jobs:
         with:
           push: true
           context: backend/
-          tags: mowb/Django:latest
+          tags: mowb/django:latest
 
       - name: Push Frontend to Docker Hub
         uses: docker/build-push-action@v2
