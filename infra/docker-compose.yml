@@ -9,7 +9,7 @@ services:
       - .env
 
   web:
-    image: mowb/django
+    image: mowb/django:latest
     restart: always
     volumes:
       - static_value:/app/static/
@@ -18,14 +18,6 @@ services:
       - db
     env_file:
       - .env
-
-  frontend:
-    image: mowb/frontend
-    restart: always
-    volumes:
-      - ../frontend/:/app/result_build/
-    depends_on:
-      - web
 
   nginx:
     image: nginx:1.19.3
@@ -36,6 +28,14 @@ services:
       - ../frontend/build:/usr/share/nginx/html/
       - ../static/:/usr/share/nginx/html/api/static/
 
+  frontend:
+    image: mowb/frontend:latest
+    restart: always
+    volumes:
+      - ../frontend/:/app/result_build/
+    depends_on:
+      - web
+      -
 volumes:
   postgres:
   static_value:
