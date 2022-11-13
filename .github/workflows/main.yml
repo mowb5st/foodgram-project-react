@@ -68,7 +68,7 @@ jobs:
               sudo docker pull mowb/django:latest
               sudo docker pull mowb/frontend:latest
               sudo docker-compose stop
-              sudo docker-compose rm web
+              sudo docker-compose rm django
               sudo docker-compose rm frontend
               touch .env
               echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
