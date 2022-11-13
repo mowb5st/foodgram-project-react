@@ -40,3 +40,4 @@ volumes:
   postgres:
   static_value:
   media_value:
+  frontend:

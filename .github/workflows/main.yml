@@ -64,8 +64,10 @@ jobs:
             key: ${{ secrets.SSH_KEY }}
             passphrase: ${{ secrets.PASSPHRASE }}
             script: |
+              cd foodgram-project-react/infra
               sudo docker pull mowb/django:latest
               sudo docker pull mowb/frontend:latest
+              cd .
               sudo docker-compose stop
               sudo docker-compose rm web
               sudo docker-compose rm frontend
