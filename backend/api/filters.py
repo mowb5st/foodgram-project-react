@@ -23,14 +23,14 @@ class RecipeFilter(django_filters.FilterSet):
         if not user.is_anonymous:
             if value == 1:
                 return queryset.filter(favorite_recipe__user=user)
-            return queryset.exclude(favorite_recipe__user=user)
+        return queryset.exclude(favorite_recipe__user=user)
 
     def get_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if not user.is_anonymous:
             if value == 1:
                 return queryset.filter(shopping_recipe__user=user)
-            return queryset.exclude(shopping_recipe__user=user)
+        return queryset.exclude(shopping_recipe__user=user)
 
 
 class IngredientFilter(django_filters.FilterSet):

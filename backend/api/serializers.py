@@ -326,8 +326,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return Subscription.objects.filter(user=user, author=obj).exists()
 
     def get_recipes_count(self, obj):
-        queryset = Recipe.objects.filter(author=obj.id).count()
-        return queryset
+        return Recipe.objects.filter(author=obj.id).count()
 
     class Meta:
         model = User
