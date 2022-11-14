@@ -6,7 +6,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='fdpr17')
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*',
+                 '158.160.11.22']
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -8,8 +8,8 @@ services:
     env_file:
       - .env
 
-  django:
-    image: mowb/django:latest
+  backend:
+    image: mowb/backend:latest
     restart: always
     volumes:
       - static_value:/app/static/
@@ -35,9 +35,10 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
       - ../static/:/usr/share/nginx/html/api/static/
+    depends_on:
+      - frontend
 
 volumes:
   postgres:
   static_value:
   media_value:
-  frontend:
