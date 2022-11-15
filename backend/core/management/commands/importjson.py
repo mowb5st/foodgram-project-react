@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 
 from foodgram.settings import BASE_DIR
 
-FOODGRAM_PUB_DIR = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
+FOODGRAM_PUB_DIR = os.path.abspath(os.path.join(BASE_DIR))
 INGREDIENTS_JSON_PATH = f'{FOODGRAM_PUB_DIR}/data/ingredients.json'
 
 
