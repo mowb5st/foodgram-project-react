@@ -1,3 +1,5 @@
+from django.shortcuts import get_object_or_404
+
 from core.models import Ingredient, Recipe, Tag
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
@@ -150,8 +152,30 @@ class IngredientViewSet(mixins.RetrieveModelMixin,
 
 class SubscriptionViewSet(UserViewSet):
 
+    def get_queryset(self):
+        if self.action == 'retrieve':
+            return User.objects.filter(id=self.kwargs['id'])
+        elif self.action == 'me':
+            return User.objects.get(id=self.request.user.id)
+        return User.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        target_user = get_object_or_404(queryset, id=kwargs.get('id'))
+        serializer = self.get_serializer(target_user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+    @action(["GET"], detail=False, url_path='me', url_name='me')
+    def me(self, request, *args, **kwargs):
+        serializer = self.get_serializer(request.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
     @action(methods=['GET'],
             detail=False,
+            url_path='subscriptions',
+            url_name='subscriptionss',
             serializer_class=SubscriptionSerializer,
             permission_classes=[IsAuthenticated],
             filter_backends=(DjangoFilterBackend,),

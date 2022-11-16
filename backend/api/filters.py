@@ -10,7 +10,7 @@ class RecipeFilter(django_filters.FilterSet):
         label='Tags',
         to_field_name='slug'
     )
-    is_favorite = django_filters.NumberFilter(method='get_favorite')
+    is_favorited = django_filters.NumberFilter(method='get_favorite')
     is_in_shopping_cart = django_filters.NumberFilter(
         method='get_is_in_shopping_cart')
 
@@ -20,7 +20,7 @@ class RecipeFilter(django_filters.FilterSet):
 
     def get_favorite(self, queryset, name, value):
         user = self.request.user
-        if not user.is_anonymous:
+        if user.is_authenticated:
             if value == 1:
                 return queryset.filter(favorite_recipe__user=user)
         return queryset.exclude(favorite_recipe__user=user)

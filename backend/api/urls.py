@@ -22,6 +22,7 @@ router.register('users', SubscriptionViewSet,
 
 urlpatterns = [
     path('', include(router.urls)),
+    # path('', include('djoser.urls')),
     path('auth/token/login/', LoginViewSet.as_view(), name='logins'),
     path('auth/token/logout/', LogoutViewSet.as_view(), name='logouts'),
 ]
