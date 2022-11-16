@@ -1,9 +1,8 @@
-from django.shortcuts import get_object_or_404
-
 from core.models import Ingredient, Recipe, Tag
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenDestroyView, UserViewSet
 from rest_framework import status
@@ -155,7 +154,7 @@ class SubscriptionViewSet(UserViewSet):
     def get_queryset(self):
         if self.action == 'retrieve':
             return User.objects.filter(id=self.kwargs['id'])
-        elif self.action == 'me':
+        if self.action == 'me':
             return User.objects.get(id=self.request.user.id)
         return User.objects.all()
 

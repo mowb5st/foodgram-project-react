@@ -1,10 +1,9 @@
 import random
 
+from core.models import Ingredient, IngredientRecipe, Recipe, Tag
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from drf_base64.fields import Base64ImageField
-
-from core.models import Ingredient, Recipe, Tag, IngredientRecipe
 from users.models import User
 
 
