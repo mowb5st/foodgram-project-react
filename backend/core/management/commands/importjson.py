@@ -14,7 +14,10 @@ class Command(BaseCommand):
     help = 'Loading data from JSON into DB'
 
     def handle(self, *args, **options):
+        print('Take json file path...')
         path = INGREDIENTS_JSON_PATH
+        print('Importing data...')
         with open(path, encoding='utf-8') as file:
             Ingredient.objects.bulk_create(
                 objs=[Ingredient(**x) for x in json.load(file)])
+        print('DONE!')

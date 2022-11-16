@@ -70,7 +70,7 @@ class Command(BaseCommand):
                 name='Картошка',
                 image=image_base64_bytes.decode('ascii'),
                 text='Рецепт, созданный через скрипт',
-                cooking_time=(n + 1)
+                cooking_time=10
             )
             recipe.ingredients.set(
                 [random.choice(ingredient_amount_objects) for _ in
