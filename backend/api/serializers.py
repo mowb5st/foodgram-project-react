@@ -123,20 +123,21 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def add_tags(self, tags, recipe):
+        if recipe.tags:
+            recipe.tags.clear()
         for tag in tags:
             recipe.tags.add(tag)
 
     def add_ingredients(self, ingredients, recipe):
+        if recipe.ingredients:
+            recipe.ingredients.clear()
         for ingredient in ingredients:
-            ingredient_obj = ingredient['id']
+            ingredient_id = ingredient.get('id').id
             amount = ingredient['amount']
-            relation_obj, created = IngredientRecipe.objects.get_or_create(
-                ingredient=ingredient_obj, amount=amount
-            )
-            if created:
-                recipe.ingredients.add(created)
-            else:
-                recipe.ingredients.add(relation_obj)
+            ingredient_recipe, _ = IngredientRecipe.objects.get_or_create(
+                ingredient_id=ingredient_id, amount=amount)
+            recipe.ingredients.add(ingredient_recipe)
+        return recipe
 
     def create(self, validated_data):
         author = self.context.get('request').user
@@ -148,13 +149,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        instance.ingredients.clear()
-        tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
-        super().update(instance, validated_data)
-        instance.tags.set(tags)
+        tags = validated_data.pop('tags')
         self.add_ingredients(ingredients, instance)
-        return instance
+        self.add_tags(tags, instance)
+        return super().update(instance, validated_data)
 
 
 class TagSerializer(serializers.ModelSerializer):
