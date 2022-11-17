@@ -10,5 +10,5 @@ class IsAuthenticatedAndOwnerOrAdmin(CustomBasePermission):
         return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        return request.user.is_admin or (request.user == obj) or (
-                    request.user == obj.author)
+        return (request.user.is_admin or (request.user == obj) or (
+                request.user == obj.author))
