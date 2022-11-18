@@ -64,10 +64,9 @@ jobs:
             key: ${{ secrets.SSH_KEY }}
             passphrase: ${{ secrets.PASSPHRASE }}
             script: |
-              docker pull mowb/frontend:latest
-              docker pull mowb/backend:latest
-              sudo docker-compose stop
+              sudo docker-compose stop backend
               sudo docker-compose rm backend
+              docker pull mowb/backend:latest
               touch .env
               echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
               echo DB_NAME=${{ secrets.DB_NAME }} >> .env
