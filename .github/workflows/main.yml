@@ -66,7 +66,7 @@ jobs:
             script: |
               sudo docker-compose stop backend
               sudo docker-compose rm backend
-              sudo docker image prune
+              sudo docker system prune -a
               docker pull mowb/backend:latest
               touch .env
               echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
